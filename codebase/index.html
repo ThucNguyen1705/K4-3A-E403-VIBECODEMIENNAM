@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VLearn - Bài 16 · MINI HACKATHON · CP2 Interactive Prototype</title>
+  <style>
+    :root {
+      --bg-darkest: #0d0e12;
+      --bg-darker: #13151b;
+      --bg-dark: #191c24;
+      --bg-card: #202430;
+      --bg-card-hover: #292e3d;
+      --border-color: #2b3040;
+      --border-light: #3d445a;
+      --text-main: #f0f2f8;
+      --text-muted: #9ba3b8;
+      --text-dim: #656d82;
+      --accent-purple: #9d5cff;
+      --accent-purple-glow: rgba(157, 92, 255, 0.25);
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --vlearn-red: #ea3943;
+      --highlight-bg: rgba(157, 92, 255, 0.28);
+      --highlight-border: #9d5cff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-darkest);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP DEMO CONTROLLER BAR (Dành cho ban giám khảo & quay video CP2) */
+    .demo-bar {
+      background: linear-gradient(90deg, #1f1b33 0%, #151928 100%);
+      border-bottom: 1px solid #433878;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .demo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: #c4b5fd;
+      background: rgba(139, 92, 246, 0.25);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #7c3aed;
+    }
+    .demo-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .demo-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-purple);
+      color: #fff;
+    }
+    .demo-btn.active {
+      background: #7c3aed;
+      color: #fff;
+      border-color: #9d5cff;
+      font-weight: 600;
+    }
+
+    /* TOP HEADER */
+    .top-header {
+      height: 52px;
+      background-color: var(--bg-darker);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .back-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: #fff; }
+    .lesson-title {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: 0.2px;
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .progress-text {
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+    .progress-bar-wrap {
+      width: 140px;
+      height: 6px;
+      background: #252a3a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      width: 37.5%;
+      height: 100%;
+      background: #4ade80;
+      border-radius: 3px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ask-ai-btn {
+      background: linear-gradient(135deg, #2b1f4d 0%, #1e1b38 100%);
+      border: 1px solid #6b3fc9;
+      color: #d8b4fe;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .ask-ai-btn:hover {
+      border-color: #a855f7;
+      color: #fff;
+      box-shadow: 0 0 12px var(--accent-purple-glow);
+    }
+    .support-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .support-btn:hover { color: var(--text-main); border-color: var(--border-light); }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #3b4256;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    /* MAIN CONTAINER (3 COLUMNS) */
+    .app-body {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 84px);
+      overflow: hidden;
+    }
+
+    /* 1. LEFT SIDEBAR */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-darker);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .close-icon {
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .sidebar-group-title {
+      padding: 12px 16px 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    .sub-tree {
+      padding: 4px 8px 12px 8px;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      line-height: 1.35;
+      margin-bottom: 2px;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .tree-item:hover {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+    }
+    .tree-item.active {
+      background-color: #1f1b2e;
+      color: #fff;
+      font-weight: 500;
+      border-left: 3px solid var(--vlearn-red);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    .item-badge {
+      margin-left: auto;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .badge-learning {
+      background-color: rgba(234, 57, 67, 0.2);
+      color: #ff6b72;
+      border: 1px solid rgba(234, 57, 67, 0.4);
+    }
+    .badge-done {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    /* 2. CENTER CONTENT VIEW */
+    .content-area {
+      flex: 1;
+      background-color: var(--bg-darkest);
+      overflow-y: auto;
+      padding: 28px 48px 60px 48px;
+      line-height: 1.7;
+      position: relative;
+    }
+    .content-container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .content-container p {
+      font-size: 14.5px;
+      color: #d1d7e5;
+      margin-bottom: 18px;
+      text-align: justify;
+    }
+    .content-container ul {
+      margin: 12px 0 20px 20px;
+      color: #d1d7e5;
+      font-size: 14px;
+    }
+    .content-container li {
+      margin-bottom: 10px;
+    }
+    .content-container strong {
+      color: #fff;
+      font-weight: 600;
+    }
+    .code-box {
+      background: #12141c;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: #93c5fd;
+      margin: 16px 0 24px;
+      line-height: 1.5;
+    }
+    .code-comment { color: #64748b; }
+
+    /* Highlighted text styling */
+    .selectable-text {
+      position: relative;
+    }
+    .selected-highlight {
+      background-color: var(--highlight-bg);
+      border-bottom: 2px solid var(--highlight-border);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    /* FLOATING POPUP KHI BÔI ĐEN CHỮ */
+    .highlight-popup {
+      position: absolute;
+      display: none;
+      background: #231d3d;
+      border: 1px solid #7c3aed;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 16px var(--accent-purple-glow);
+      border-radius: 8px;
+      padding: 6px 12px;
+      z-index: 50;
+      transform: translate(-50%, -100%);
+      margin-top: -8px;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #e9d5ff;
+      white-space: nowrap;
+      animation: popIn 0.15s ease-out;
+    }
+    .highlight-popup:hover {
+      background: #312658;
+      color: #fff;
+    }
+    .highlight-popup::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px 6px 0;
+      border-style: solid;
+      border-color: #7c3aed transparent;
+      display: block;
+      width: 0;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: translate(-50%, -90%) scale(0.95); }
+      to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+    }
+
+    /* 3. RIGHT PANEL - TUTOR AI */
+    .tutor-panel {
+      width: 400px;
+      background-color: var(--bg-darker);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .tutor-header {
+      height: 52px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .tutor-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+    .sparkle-icon {
+      color: #c084fc;
+      font-size: 16px;
+    }
+    .tutor-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    .tutor-actions span {
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .tutor-actions span:hover { color: var(--text-main); }
+    .new-chat-btn {
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .new-chat-btn:hover { color: #fff; }
+
+    /* CHAT BODY */
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      margin: auto 0;
+      text-align: center;
+      padding: 20px;
+    }
+    .empty-state-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f3f4f6;
+      margin-bottom: 8px;
+    }
+    .empty-state-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .quick-chips-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .quick-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+    .chip-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chip-item:hover {
+      background: var(--bg-card-hover);
+      border-color: #6366f1;
+      color: #fff;
+    }
+
+    /* CHAT MESSAGES */
+    .msg-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .msg-user {
+      align-self: flex-end;
+      max-width: 90%;
+    }
+    .msg-tutor {
+      align-self: flex-start;
+      max-width: 100%;
+    }
+
+    .bubble-user {
+      background: #312e81;
+      color: #e0e7ff;
+      border: 1px solid #4338ca;
+      padding: 10px 14px;
+      border-radius: 12px 12px 2px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .selected-context-quote {
+      background: rgba(0,0,0,0.3);
+      border-left: 2px solid #a855f7;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #c4b5fd;
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 6px;
+      font-style: italic;
+    }
+
+    .bubble-tutor {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 12px 14px;
+      border-radius: 12px 12px 12px 2px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #f1f5f9;
+      position: relative;
+    }
+
+    .tutor-badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .tag-grounded {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .tag-socratic {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .tag-refusal {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .citation-tag {
+      display: inline-block;
+      background: #1e1b4b;
+      color: #a78bfa;
+      border: 1px solid #6366f1;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px 0;
+    }
+
+    .socratic-options {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .socratic-btn {
+      background: #181c28;
+      border: 1px solid #3b4256;
+      color: #cbd5e1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .socratic-btn:hover {
+      background: #282e44;
+      border-color: #8b5cf6;
+      color: #fff;
+    }
+
+    /* INPUT SECTION */
+    .tutor-footer {
+      padding: 12px 14px;
+      background: var(--bg-darker);
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .selection-preview-pill {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: #252042;
+      border: 1px solid #6b3fc9;
+      color: #d8b4fe;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      margin-bottom: 8px;
+    }
+    .selection-preview-text {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .clear-selection-btn {
+      cursor: pointer;
+      color: #a855f7;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    .input-box-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      transition: border-color 0.2s;
+    }
+    .input-box-wrapper:focus-within {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 2px var(--accent-purple-glow);
+    }
+    .chat-textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 13px;
+      resize: none;
+      max-height: 80px;
+      line-height: 1.4;
+    }
+    .chat-textarea::placeholder { color: var(--text-dim); }
+
+    .send-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: #3730a3;
+      color: #c7d2fe;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .send-btn:hover {
+      background: #4f46e5;
+      color: #fff;
+    }
+
+    .disclaimer-text {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* MODAL SƠ ĐỒ LUỒNG (CP2 FLOWCHART) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-card {
+      background: #151824;
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close {
+      font-size: 20px;
+      color: var(--text-dim);
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-body {
+      padding: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    /* SƠ ĐỒ CÂY QUYẾT ĐỊNH TRONG MODAL */
+    .flow-diagram-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .flow-node {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      position: relative;
+    }
+    .flow-node-title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .branches-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .branch-card {
+      background: #1b2030;
+      border: 1px solid #333d56;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+    }
+    .branch-card.b1 { border-top: 3px solid #10b981; }
+    .branch-card.b2 { border-top: 3px solid #f59e0b; }
+    .branch-card.b3 { border-top: 3px solid #ef4444; }
+
+    .hax-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .hax-card {
+      background: #181d2c;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+    }
+    .hax-code {
+      font-weight: 700;
+      color: #a78bfa;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 0. THANH ĐIỀU HƯỚNG DEMO CP2 (Dành cho Giám khảo & Quay Video thao tác) -->
+  <div class="demo-bar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="demo-badge">⚡ CP2 INTERACTIVE PROTOTYPE</span>
+      <span style="color: #94a3b8; font-size: 12px;">Track A1 · VLearn Tutor Socratic Grounded</span>
+    </div>
+    <div class="demo-actions">
+      <button class="demo-btn" onclick="runScenario('happy')">🟢 1. Happy Path (Đủ căn cứ)</button>
+      <button class="demo-btn" onclick="runScenario('lowconf')">🟡 2. Low-Confidence (Câu cụt)</button>
+      <button class="demo-btn" onclick="runScenario('refusal')">🔴 3. Failure (Ngoài phạm vi)</button>
+      <button class="demo-btn" onclick="runScenario('correction')">🔵 4. Correction (Sửa/Nắn)</button>
+      <button class="demo-btn active" onclick="toggleModal(true)">📊 Xem Sơ đồ luồng & HAX</button>
+    </div>
+  </div>
+
+  <!-- 1. TOP HEADER (Chuẩn VLearn) -->
+  <header class="top-header">
+    <div class="header-left">
+      <button class="back-btn" title="Quay lại danh sách bài">←</button>
+      <span class="lesson-title">Bài 16 · MINI HACKATHON</span>
+    </div>
+
+    <div class="header-center">
+      <span class="progress-text">0/8 bài</span>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="ask-ai-btn" onclick="focusChat()">
+        <span class="sparkle-icon">✨</span> Đặt câu hỏi với AI
+      </button>
+      <button class="support-btn">
+        <span>👋</span> Gửi yêu cầu
+      </button>
+      <div class="user-avatar" title="Học viên Nguyễn Đức Minh">N</div>
+    </div>
+  </header>
+
+  <!-- 2. APPLICATION BODY (3 CỘT) -->
+  <div class="app-body">
+
+    <!-- CỘT 1: SIDEBAR TRÁI (DANH SÁCH BÀI HỌC) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">NỘI DUNG BÀI HỌC</span>
+        <span class="close-icon" title="Thu gọn sidebar">✕</span>
+      </div>
+
+      <div class="sidebar-group-title">
+        <span>Slides</span>
+        <span>›</span>
+      </div>
+
+      <div class="sidebar-group-title">
+        <span>📄 k4-3a-d05-06-ai-product...</span>
+        <span>ˇ</span>
+      </div>
+
+      <div class="sub-tree">
+        <div class="tree-item">
+          <span>①</span>
+          <span>Chuẩn bị đội ngũ, chọn track và khởi...</span>
+        </div>
+        <div class="tree-item">
+          <span>②</span>
+          <span>Khám phá bài toán, thu thập bằng c...</span>
+        </div>
+        <div class="tree-item active">
+          <span>③</span>
+          <span>Thiết kế luồng trải ngh...</span>
+          <span class="item-badge badge-learning">Đang học</span>
+        </div>
+        <div class="tree-item">
+          <span>④</span>
+          <span>Xây dựng prototype AI thật và đo lu...</span>
+        </div>
+        <div class="tree-item">
+          <span>⑤</span>
+          <span>Hoàn thiện tài liệu AI Spec và khóa...</span>
+        </div>
+        <div class="tree-item">
+          <span>⑥</span>
+          <span>Xác thực người dùng ngoài nhóm, x...</span>
+        </div>
+      </div>
+
+      <div class="sidebar-group-title" style="margin-top: 10px;">
+        <span>Nộp bài tổng kết và quy trình thuyết trình</span>
+      </div>
+      <div class="sub-tree">
+        <div class="tree-item">
+          <span>⑦</span>
+          <span>Bài đọc</span>
+        </div>
+        <div class="tree-item">
+          <span>⑧</span>
+          <span>Nộp bài và đánh giá</span>
+          <span class="item-badge badge-done">✓ Đã xong</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CỘT 2: KHUNG ĐỌC TÀI LIỆU / BÀI GIẢNG (HỌC VIÊN CÓ THỂ BÔI ĐEN CHỮ) -->
+    <main class="content-area" id="lectureContentArea">
+      <div class="content-container">
+
+        <!-- Tooltip nổi khi bôi đen -->
+        <div id="highlightTooltip" class="highlight-popup" onclick="askAboutSelection()">
+          ✨ Bôi đen đoạn này & hỏi Trợ giảng AI
+        </div>
+
+        <p>
+          Giai đoạn thiết kế luồng nhằm phát hiện các lỗ hổng trải nghiệm và bất cập logic trước khi đầu tư thời gian vào lập trình mô hình. Khi thể hiện toàn bộ tương tác trên bản mẫu, nhóm có thể kiểm tra xem người dùng bấm vào đâu, hệ thống phản hồi thế nào và luồng xử lý kết thúc ở điểm nào. Sửa chữa sai sót trên sơ đồ hoặc bản mock chỉ tốn vài phút, trong khi sửa đổi sau khi đã lập trình hoàn chỉnh sẽ làm tiêu hao toàn bộ thời gian của sự kiện.
+        </p>
+
+        <p id="costOfErrorParagraph" class="selectable-text">
+          Trong thiết kế sản phẩm AI, nhóm cần xác định rõ mức độ tự động hóa dựa trên <strong>chi phí sai sót (cost-of-error)</strong>. Nếu sai sót gây hậu quả nghiêm trọng, giải pháp phải dừng ở mức hỗ trợ (augment) để con người giữ quyền quyết định cuối cùng; nếu chi phí sai sót thấp hoặc có cơ chế sửa sai tức thì, nhóm mới cân nhắc tự động hóa có điều kiện (conditional) hoặc tự động hóa hoàn toàn (automate). Đồng thời, nhóm phải thiết kế rõ 4 kịch bản trải nghiệm: đường thuận lợi khi AI tự tin cao (happy path), đường xử lý khi AI thiếu tự tin (low-confidence), đường xử lý khi không tìm thấy căn cứ thông tin (failure/no-grounding), và cơ chế cho phép người dùng can thiệp sửa đổi kết quả trực tiếp (correction). Nhóm lựa chọn tối thiểu 4 nguyên tắc trong bộ hướng dẫn PAIR của Google hoặc HAX Toolkit của Microsoft và xác định chính xác vị trí áp dụng trên giao diện.
+        </p>
+
+        <ul>
+          <li>
+            <strong>1. Thiết kế toàn bộ hành trình người dùng trải qua một trong ba hình thức:</strong>
+            <ul style="margin-top: 6px;">
+              <li>Bản mẫu tương tác (Clickable prototype) dựng trên Figma, Canva hoặc trang web tĩnh (HTML/CSS/JS đơn giản).</li>
+              <li>Sơ đồ luồng chi tiết (Flowchart) thể hiện rõ các bước nhập liệu, điểm gọi quyết định AI và các nhánh xử lý ngoại lệ.</li>
+              <li>Video quay màn hình đi hết một vòng tương tác từ đầu vào đến đầu ra cuối cùng.</li>
+            </ul>
+          </li>
+          <li>
+            <strong>1. Cập nhật thiết kế vào mục §4 và §6 của tệp <code>spec.md</code></strong>, nêu rõ mức prototype nhắm tới (Sketch, Mock hay Working), phần nào sẽ chạy giả lập (mock) và phần nào sẽ chạy thực tế. Lập bảng liệt kê 4 nguyên tắc HAX/PAIR kèm vị trí áp dụng cụ thể trong bản mẫu.
+          </li>
+          <li>
+            <strong>1. Lưu trữ mã nguồn giao diện hoặc ảnh chụp sơ đồ luồng vào thư mục <code>codebase/</code> trên repository:</strong>
+          </li>
+        </ul>
+
+        <div class="code-box">
+          <div class="code-comment"># Di chuyển các tệp thiết kế hoặc mã nguồn giao diện vào codebase/</div>
+          mkdir -p codebase<br>
+          git add codebase/ spec.md
+        </div>
+
+        <p style="color: #64748b; font-size: 13px; font-style: italic;">
+          💡 <em>Mẹo thử nghiệm tương tác: Bạn có thể dùng chuột bôi đen bất kỳ cụm từ nào ở đoạn trên, một nút "Hỏi AI" sẽ bật lên ngay vị trí con trỏ để chuyển đoạn bôi đen vào Trợ giảng AI.</em>
+        </p>
+
+      </div>
+    </main>
+
+    <!-- CỘT 3: TRỢ GIẢNG AI (TUTOR PANEL) -->
+    <aside class="tutor-panel">
+      <!-- Header Trợ giảng -->
+      <div class="tutor-header">
+        <div class="tutor-title-wrap">
+          <span class="sparkle-icon">✨</span>
+          <span>Trợ giảng AI</span>
+        </div>
+        <div class="tutor-actions">
+          <span class="new-chat-btn" onclick="resetChat()" title="Làm mới cuộc trò chuyện">+ Chat mới</span>
+          <span title="Lịch sử hỏi">🕒</span>
+          <span title="Cửa sổ nổi">🗔</span>
+          <span title="Thu nhỏ">🗕</span>
+          <span title="Đóng">✕</span>
+        </div>
+      </div>
+
+      <!-- Vùng tin nhắn Chat -->
+      <div class="chat-body" id="chatBody">
+        <!-- Trạng thái mặc định khi chưa chat -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-title">Tối nay MINH muốn hỏi gì nào?</div>
+          <div class="empty-state-sub">Đang mở: Thiết kế luồng trải nghiệm và dựng bản mẫu tương tác (CP2)</div>
+
+          <div class="quick-chips-title">Gợi ý thử nghiệm 4 nhánh CP2</div>
+          <div class="quick-chips">
+            <div class="chip-item" onclick="runScenario('happy')">
+              <span>🟢</span>
+              <span>"Mức Conditional khác gì Augment theo cost-of-error?"</span>
+            </div>
+            <div class="chip-item" onclick="runScenario('lowconf')">
+              <span>🟡</span>
+              <span>"giải thích đoạn này" (Câu hỏi cụt &lt; 25 ký tự)</span>
+            </div>
+            <div class="chip-item" onclick="runScenario('refusal')">
+              <span>🔴</span>
+              <span>"Hạn nộp lab 6 là mấy giờ?" (Ngoài tài liệu slide)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vùng nhập câu hỏi & Context bôi đen -->
+      <div class="tutor-footer">
+        <!-- Preview đoạn được bôi đen -->
+        <div class="selection-preview-pill" id="selectionPreviewPill">
+          <span>📎 Đoạn chọn: <span class="selection-preview-text" id="selectionPreviewText">...</span></span>
+          <span class="clear-selection-btn" onclick="clearSelection()" title="Bỏ đoạn chọn">✕</span>
+        </div>
+
+        <div class="input-box-wrapper">
+          <textarea
+            id="chatInput"
+            class="chat-textarea"
+            rows="1"
+            placeholder="Hỏi bất cứ điều gì về tài liệu..."
+            onkeydown="handleKeyDown(event)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="submitUserMessage()" title="Gửi câu hỏi">↑</button>
+        </div>
+        <div class="disclaimer-text">
+          Trợ giảng AI có thể sai – hãy đối chiếu với bài giảng.
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- 3. MODAL SƠ ĐỒ LUỒNG (CP2 FLOWCHART & HAX/PAIR AUDIT) -->
+  <div class="modal-overlay" id="flowModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📊 Sơ Đồ Cây Quyết Định (User Flow) & Đối Chiếu HAX/PAIR</span>
+        </div>
+        <button class="modal-close" onclick="toggleModal(false)">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p>
+          Bản mẫu tương tác này thể hiện giải pháp <strong>Track A1 — Socratic Grounded Assistant</strong> của nhóm <strong>VIBECODEMIENNAM</strong>, giải quyết trực diện vấn đề Tutor trả lời dài suy đoán khi học viên hỏi cụt hoặc hỏi ngoài tài liệu.
+        </p>
+
+        <!-- Kiến trúc cây quyết định -->
+        <div class="flow-diagram-container">
+          <div class="flow-node" style="border-left: 4px solid #3b82f6;">
+            <div class="flow-node-title">
+              <span>1️⃣ Input Từ Học Viên</span>
+            </div>
+            <div>Học viên bôi đen đoạn tài liệu + gõ câu hỏi (hoặc gõ thẳng không chọn đoạn).</div>
+          </div>
+
+          <div class="flow-node" style="border-left: 4px solid #8b5cf6;">
+            <div class="flow-node-title">
+              <span>2️⃣ AI Decision Engine (Bộ Quyết Định Nước Đi)</span>
+            </div>
+            <div>Phân loại ngữ cảnh trước khi trả lời: Đủ căn cứ trong đoạn? Input có mơ hồ (&le;25 ký tự)? Nằm ngoài phạm vi bài?</div>
+
+            <div class="branches-grid">
+              <div class="branch-card b1">
+                <strong style="color: #34d399;">Nhánh 1: Happy Path</strong>
+                <p style="margin-top: 4px; color: #94a3b8;">Đoạn chọn đủ thông tin, câu hỏi rõ ràng &rarr; Trả lời ngắn gọn súc tích kèm trích dẫn nguồn <code>[Mục 2 · Trang 1]</code>.</p>
+              </div>
+              <div class="branch-card b2">
+                <strong style="color: #fbbf24;">Nhánh 2: Low-Confidence</strong>
+                <p style="margin-top: 4px; color: #94a3b8;">Câu hỏi cụt (&le;25 ký tự: "giải thích", "tiếp", "sao thế") &rarr; <strong>Không đoán mò</strong>, kích hoạt Socratic Probe hỏi đúng 1 câu làm rõ kèm quick chips.</p>
+              </div>
+              <div class="branch-card b3">
+                <strong style="color: #f87171;">Nhánh 3: Graceful Refusal</strong>
+                <p style="margin-top: 4px; color: #94a3b8;">Câu hỏi không có dữ liệu trong bài &rarr; Thừa nhận trung thực <em>"Không có trong tài liệu này"</em> và chỉ rõ địa chỉ nên tìm.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-node" style="border-left: 4px solid #06b6d4;">
+            <div class="flow-node-title">
+              <span>3️⃣ Vòng Can Thiệp & Sửa Sai (Correction Path)</span>
+            </div>
+            <div>Học viên bấm chip gợi ý hoặc gõ bổ sung ngữ cảnh &rarr; Hệ thống cập nhật câu trả lời tức thì mà không cần hỏi lại từ đầu.</div>
+          </div>
+        </div>
+
+        <!-- 4 Nguyên tắc HAX/PAIR -->
+        <h4 style="margin-top: 24px; color: #f1f5f9; font-size: 14px;">4 Nguyên Tắc HAX / PAIR Đã Hiện Thực Hóa Trên Bản Mẫu</h4>
+        <div class="hax-grid">
+          <div class="hax-card">
+            <div class="hax-code">HAX G1 · Làm rõ hệ thống có thể làm gì</div>
+            <div>Trợ giảng hiển thị rõ phạm vi đang đọc: <em>"Đang mở: Thiết kế luồng trải nghiệm (CP2)"</em> và các gợi ý câu hỏi mẫu phù hợp với bài.</div>
+          </div>
+          <div class="hax-card">
+            <div class="hax-code">HAX G4 · Thể hiện thông tin theo ngữ cảnh</div>
+            <div>Khi học viên bôi đen, tooltip xuất hiện ngay cạnh con trỏ chuột và hiển thị tag <code>[Đoạn chọn: "..."]</code> trong khung chat.</div>
+          </div>
+          <div class="hax-card">
+            <div class="hax-code">HAX G11 · Giảm thiểu định kiến & Thừa nhận giới hạn</div>
+            <div>Khi gặp câu hỏi ngoài tài liệu, AI nói rõ <em>"Không có trong bài đọc"</em> thay vì bịa đặt (hallucination) độ dài 800 ký tự như bản cũ.</div>
+          </div>
+          <div class="hax-card">
+            <div class="hax-code">PAIR · Give Context-Aware Guidance & Controls</div>
+            <div>Cung cấp các nút bấm nhanh (Quick Reply Chips) sau câu hỏi Socratic để học viên làm rõ ý chỉ với 1 cú click (tốn &le; 5 giây).</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: right;">
+          <button class="demo-btn active" style="padding: 8px 16px; font-size: 13px;" onclick="toggleModal(false)">Đóng & Trải Nghiệm Thử</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State quản lý tương tác
+    let selectedTextContext = "";
+
+    // Xử lý bôi đen văn bản trong vùng bài giảng
+    const lectureArea = document.getElementById("lectureContentArea");
+    const highlightTooltip = document.getElementById("highlightTooltip");
+    const previewPill = document.getElementById("selectionPreviewPill");
+    const previewText = document.getElementById("selectionPreviewText");
+    const chatInput = document.getElementById("chatInput");
+
+    document.addEventListener("selectionchange", () => {
+      const selection = window.getSelection();
+      const text = selection.toString().trim();
+
+      if (text.length > 5 && lectureArea.contains(selection.anchorNode)) {
+        selectedTextContext = text;
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        highlightTooltip.style.display = "block";
+        highlightTooltip.style.left = `${rect.left + rect.width / 2}px`;
+        highlightTooltip.style.top = `${rect.top - 6}px`;
+      } else {
+        // Ẩn nếu không click vào chính tooltip
+        if (!highlightTooltip.matches(":hover")) {
+          highlightTooltip.style.display = "none";
+        }
+      }
+    });
+
+    // Nhấn nút bôi đen
+    function askAboutSelection() {
+      if (!selectedTextContext) return;
+      highlightTooltip.style.display = "none";
+      updateSelectionPill(selectedTextContext);
+      focusChat();
+      chatInput.placeholder = `Hỏi về: "${selectedTextContext.substring(0, 30)}..."`;
+    }
+
+    function updateSelectionPill(text) {
+      selectedTextContext = text;
+      previewText.innerText = `"${text.substring(0, 45)}..."`;
+      previewPill.style.display = "flex";
+    }
+
+    function clearSelection() {
+      selectedTextContext = "";
+      previewPill.style.display = "none";
+      chatInput.placeholder = "Hỏi bất cứ điều gì về tài liệu...";
+    }
+
+    function focusChat() {
+      chatInput.focus();
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submitUserMessage();
+      }
+    }
+
+    function resetChat() {
+      const chatBody = document.getElementById("chatBody");
+      chatBody.innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-title">Tối nay MINH muốn hỏi gì nào?</div>
+          <div class="empty-state-sub">Đang mở: Thiết kế luồng trải nghiệm và dựng bản mẫu tương tác (CP2)</div>
+          <div class="quick-chips-title">Gợi ý thử nghiệm 4 nhánh CP2</div>
+          <div class="quick-chips">
+            <div class="chip-item" onclick="runScenario('happy')">
+              <span>🟢</span>
+              <span>"Mức Conditional khác gì Augment theo cost-of-error?"</span>
+            </div>
+            <div class="chip-item" onclick="runScenario('lowconf')">
+              <span>🟡</span>
+              <span>"giải thích đoạn này" (Câu hỏi cụt &lt; 25 ký tự)</span>
+            </div>
+            <div class="chip-item" onclick="runScenario('refusal')">
+              <span>🔴</span>
+              <span>"Hạn nộp lab 6 là mấy giờ?" (Ngoài tài liệu slide)</span>
+            </div>
+          </div>
+        </div>
+      `;
+      clearSelection();
+    }
+
+    // Gửi tin nhắn từ người dùng
+    function submitUserMessage(overrideText, overrideContext) {
+      const text = overrideText || chatInput.value.trim();
+      if (!text) return;
+
+      const context = overrideContext !== undefined ? overrideContext : selectedTextContext;
+
+      // Ẩn empty state
+      const emptyState = document.getElementById("emptyState");
+      if (emptyState) emptyState.remove();
+
+      appendUserBubble(text, context);
+      chatInput.value = "";
+
+      // Giả lập quyết định của AI Engine
+      setTimeout(() => {
+        simulateAiDecision(text, context);
+      }, 500);
+    }
+
+    function appendUserBubble(text, context) {
+      const chatBody = document.getElementById("chatBody");
+      const row = document.createElement("div");
+      row.className = "msg-row msg-user";
+
+      let contextHtml = "";
+      if (context) {
+        contextHtml = `<div class="selected-context-quote">Đoạn bôi đen: "${context.substring(0, 65)}..."</div>`;
+      }
+
+      row.innerHTML = `
+        <div class="bubble-user">
+          ${contextHtml}
+          <div>${escapeHtml(text)}</div>
+        </div>
+      `;
+      chatBody.appendChild(row);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // MÔ PHỎNG QUYẾT ĐỊNH CỦA AI ENGINE (4 NHÁNH)
+    function simulateAiDecision(query, context) {
+      const qLower = query.toLowerCase();
+      const chatBody = document.getElementById("chatBody");
+      const row = document.createElement("div");
+      row.className = "msg-row msg-tutor";
+
+      // Nhánh 2: Low confidence / Câu hỏi cụt (<= 25 ký tự hoặc từ chung chung)
+      if (
+        (qLower.length <= 25 && (qLower.includes("giải thích") || qLower.includes("tiếp") || qLower.includes("sao") || qLower === "đây" || qLower === "hi" || qLower === "?")) ||
+        qLower === "giải thích đoạn này"
+      ) {
+        row.innerHTML = `
+          <div class="bubble-tutor">
+            <span class="tutor-badge-tag tag-socratic">🟡 SOCRATIC PROBE · HỎI LẠI MỘT CÂU</span>
+            <p>Đoạn bạn chọn đề cập đến <strong>chi phí sai sót (cost-of-error)</strong> và <strong>3 mức tự động hóa</strong>. Bạn đang muốn:</p>
+            <div class="socratic-options">
+              <button class="socratic-btn" onclick="submitUserMessage('Phân biệt rõ Augment và Conditional kèm ví dụ', '${context || "chi phí sai sót (cost-of-error)"}')">
+                👉 Phân biệt khi nào dùng Augment vs Conditional?
+              </button>
+              <button class="socratic-btn" onclick="submitUserMessage('Cách tính chi phí sai sót (cost-of-error) trong thực tế', '${context || "chi phí sai sót"}')">
+                👉 Hiểu rõ hơn về cách đánh giá "chi phí sai sót"?
+              </button>
+              <button class="socratic-btn" onclick="submitUserMessage('4 kịch bản trải nghiệm bắt buộc gồm những gì?', '${context || "4 kịch bản trải nghiệm"}')">
+                👉 Muốn xem ví dụ cụ thể về 4 nhánh trải nghiệm?
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      // Nhánh 3: Ngoài phạm vi tài liệu (Failure / Graceful Refusal)
+      else if (
+        qLower.includes("mai") ||
+        qLower.includes("mấy giờ") ||
+        qLower.includes("hạn nộp") ||
+        qLower.includes("discord") ||
+        qLower.includes("thầy nào") ||
+        qLower.includes("ăn gì")
+      ) {
+        row.innerHTML = `
+          <div class="bubble-tutor">
+            <span class="tutor-badge-tag tag-refusal">🔴 GRACEFUL REFUSAL · NGOÀI PHẠM VI</span>
+            <p>Rất tiếc, thông tin về <strong>"${escapeHtml(query)}"</strong> không nằm trong bài đọc <em>Thiết kế luồng trải nghiệm (CP2)</em> đang mở.</p>
+            <p style="margin-top: 8px; font-size: 12px; color: #94a3b8;">
+              📍 <strong>Nơi bạn nên tìm:</strong> Bạn vui lòng kiểm tra tại bảng thông báo chung của khoá học trên Discord hoặc mục <em>Lịch trình 47.5 giờ</em> tại trang chủ VLearn.
+            </p>
+          </div>
+        `;
+      }
+      // Nhánh 1: Happy Path (Trả lời có căn cứ và trích dẫn trang)
+      else {
+        row.innerHTML = `
+          <div class="bubble-tutor">
+            <span class="tutor-badge-tag tag-grounded">🟢 GROUNDED · TRÍCH DẪN [TRANG 1 · ĐOẠN 2]</span>
+            <p>Theo tài liệu đang mở, mức tự động hóa được quyết định bởi <strong>chi phí sai sót (cost-of-error)</strong>:</p>
+            <ul style="margin: 8px 0 8px 18px; font-size: 12.5px;">
+              <li><strong>Augment (Hỗ trợ):</strong> Dùng khi sai sót gây hậu quả nghiêm trọng &rarr; con người bắt buộc giữ quyền quyết định cuối cùng.</li>
+              <li><strong>Conditional (Có điều kiện):</strong> Dùng khi chi phí sai sót thấp hoặc có cơ chế cho phép người dùng sửa sai ngay tức thì.</li>
+            </ul>
+            <span class="citation-tag">Trích dẫn: Mục 2 · Đoạn 2 (cost-of-error)</span>
+            <div style="margin-top: 10px; font-size: 11px; color: #94a3b8;">
+              💡 <em>Bạn có cần làm rõ thêm về mức Automate hoàn toàn không?</em>
+            </div>
+          </div>
+        `;
+      }
+
+      chatBody.appendChild(row);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // CHẠY NHANH CÁC KỊCH BẢN ĐỂ QUAY CLIP HOẶC DEMO CHO TA
+    function runScenario(type) {
+      resetChat();
+      const costPara = document.getElementById("costOfErrorParagraph").innerText;
+
+      if (type === 'happy') {
+        const snippet = "Trong thiết kế sản phẩm AI, nhóm cần xác định rõ mức độ tự động hóa dựa trên chi phí sai sót (cost-of-error).";
+        updateSelectionPill(snippet);
+        setTimeout(() => {
+          submitUserMessage("Mức Conditional khác gì Augment theo cost-of-error?", snippet);
+        }, 300);
+      } else if (type === 'lowconf') {
+        const snippet = "Đồng thời, nhóm phải thiết kế rõ 4 kịch bản trải nghiệm: đường thuận lợi khi AI tự tin cao (happy path)...";
+        updateSelectionPill(snippet);
+        setTimeout(() => {
+          submitUserMessage("giải thích", snippet);
+        }, 300);
+      } else if (type === 'refusal') {
+        clearSelection();
+        setTimeout(() => {
+          submitUserMessage("Hạn nộp bài Lab 6 và buổi pitch là mấy giờ?", "");
+        }, 300);
+      } else if (type === 'correction') {
+        // Chạy low-conf trước rồi trigger correction
+        const snippet = "chi phí sai sót (cost-of-error)";
+        updateSelectionPill(snippet);
+        submitUserMessage("slide này là sao?", snippet);
+        setTimeout(() => {
+          submitUserMessage("Ý mình là muốn xem ví dụ cụ thể về chi phí sai sót khi học viên nhận câu trả lời sai", snippet);
+        }, 1200);
+      }
+    }
+
+    function toggleModal(show) {
+      document.getElementById("flowModal").style.display = show ? "flex" : "none";
+    }
+
+    function escapeHtml(string) {
+      const div = document.createElement('div');
+      div.innerText = string;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
