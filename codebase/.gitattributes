@@ -1,0 +1,2 @@
+# Giữ LF cho shell script để chạy được trên Git Bash / Linux / macOS
+*.sh text eol=lf

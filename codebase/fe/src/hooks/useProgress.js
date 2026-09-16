@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 
 // Tiến độ học lưu tạm ở localStorage — sau này sẽ đồng bộ với backend.
 const keyOf = (courseId, dayId) => `vlearn_progress_${courseId}_${dayId}`
-const LAST_DAY_KEY = 'vlearn_last_day'
 
 function read(key, fallback) {
   try {
@@ -27,12 +26,4 @@ export function useProgress(courseId, dayId) {
   )
 
   return { done, toggle }
-}
-
-export function getLastDays() {
-  return read(LAST_DAY_KEY, {})
-}
-
-export function setLastDay(courseId, dayId) {
-  localStorage.setItem(LAST_DAY_KEY, JSON.stringify({ ...getLastDays(), [courseId]: dayId }))
 }

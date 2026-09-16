@@ -1,0 +1,49 @@
+name: vlearn
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vlearn
+      POSTGRES_PASSWORD: vlearn
+      POSTGRES_DB: vlearn
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Chỉ chạy lần đầu khi volume còn trống (reset: npm run db:reset)
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vlearn -d vlearn"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Giao diện web xem database: http://localhost:8080 (System: PostgreSQL, Server: db, user/pass: vlearn)
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  # Tuỳ chọn: chạy luôn API trong docker -> docker compose --profile api up -d
+  api:
+    build: .
+    profiles: ["api"]
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://vlearn:vlearn@db:5432/vlearn
+      JWT_SECRET: change-me-to-a-long-random-string
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

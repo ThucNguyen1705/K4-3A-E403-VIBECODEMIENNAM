@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Flame, NotebookText, Target, Clock } from 'lucide-react'
+import { BookOpen, ChevronRight, Flame, NotebookText, Target, Clock } from 'lucide-react'
 import clsx from 'clsx'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
 import { getMyCourses } from '../services/api'
-import { getLastDays } from '../hooks/useProgress'
-import { upcomingFeatures } from '../data/mockData'
+
+const upcomingFeatures = [
+  { title: 'Trợ giảng AI', desc: 'Bôi đen đoạn tài liệu và hỏi AI ngay trong bài học.' },
+  { title: 'Quiz thích ứng', desc: 'Bài quiz tự điều chỉnh theo chỗ bạn đang yếu.' },
+  { title: 'Bảng xếp hạng', desc: 'Thi đua chuỗi ngày học cùng bạn bè trong lớp.' },
+]
 
 function SectionTitle({ children, action }) {
   return (
@@ -27,18 +31,23 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [courses, setCourses] = useState(null)
   const [activeCourseId, setActiveCourseId] = useState(null)
-  const lastDays = getLastDays()
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    getMyCourses().then((data) => {
-      setCourses(data)
-      setActiveCourseId(data[0]?.id)
-    })
+    getMyCourses()
+      .then((data) => {
+        setCourses(data)
+        setActiveCourseId(data[0]?.id)
+      })
+      .catch((err) => {
+        setCourses([])
+        setError(err.message)
+      })
   }, [])
 
   const activeCourse = courses?.find((c) => c.id === activeCourseId)
-  const currentDayId = activeCourse && (lastDays[activeCourse.id] ?? activeCourse.days[0]?.id)
-  const openDay = (courseId, dayId) => navigate(`/course/${courseId}/day/${dayId}`)
+  const firstLesson = activeCourse?.lessons[0]
+  const openDay = (courseId, dayCode) => navigate(`/course/${courseId}/day/${dayCode}`)
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -53,13 +62,15 @@ export default function DashboardPage() {
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-slate-600">
               {activeCourse
-                ? `${activeCourse.days.length} buổi đang chờ môn ${activeCourse.title}. Bắt đầu từ đâu cũng được, nhưng một bài quiz sẽ cho biết nên bắt đầu từ đâu.`
-                : 'Đang tải khóa học...'}
+                ? `${activeCourse.lessons.length} buổi đang chờ môn ${activeCourse.title}. Bắt đầu từ đâu cũng được, nhưng một bài quiz sẽ cho biết nên bắt đầu từ đâu.`
+                : courses
+                  ? 'Bạn chưa có khóa học nào.'
+                  : 'Đang tải khóa học...'}
             </p>
           </div>
-          {activeCourse && (
+          {firstLesson && (
             <button
-              onClick={() => openDay(activeCourse.id, currentDayId)}
+              onClick={() => openDay(activeCourse.id, firstLesson.dayCode)}
               className="cursor-pointer rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/25 hover:bg-brand-800"
             >
               Vào khóa học
@@ -94,45 +105,25 @@ export default function DashboardPage() {
                   Array.from({ length: 6 }).map((_, i) => (
                     <li key={i} className="h-11 animate-pulse bg-slate-50" />
                   ))}
-                {activeCourse?.days.map((day) => {
-                  const active = day.id === currentDayId
-                  return (
-                    <li key={day.id}>
-                      <button
-                        onClick={() => openDay(activeCourse.id, day.id)}
-                        className={clsx(
-                          'group flex w-full cursor-pointer items-center gap-3 border-l-2 px-4 py-3 text-left text-sm transition',
-                          active
-                            ? 'border-brand-600 bg-brand-50/70'
-                            : 'border-transparent hover:bg-slate-50',
-                        )}
-                      >
-                        <span
-                          className={clsx(
-                            'grid h-4 w-4 shrink-0 place-items-center rounded-full border-2',
-                            active ? 'border-brand-600' : 'border-slate-300 group-hover:border-brand-400',
-                          )}
-                        >
-                          {active && <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />}
-                        </span>
-                        <span className={clsx('font-medium', active ? 'text-brand-800' : 'text-slate-700')}>
-                          Buổi {day.order}: {day.title}
-                        </span>
-                        <span className="hidden truncate text-xs text-slate-400 sm:inline">· {day.topic}</span>
-                        {active ? (
-                          <span className="ml-auto text-[11px] font-bold tracking-wider text-brand-700 uppercase">
-                            Đang học...
-                          </span>
-                        ) : (
-                          <ChevronRight
-                            size={16}
-                            className="ml-auto text-slate-300 opacity-0 transition group-hover:opacity-100"
-                          />
-                        )}
-                      </button>
-                    </li>
-                  )
-                })}
+                {error && <li className="px-4 py-6 text-center text-sm text-red-600">{error}</li>}
+                {activeCourse?.lessons.map((lesson) => (
+                  <li key={lesson.id}>
+                    <button
+                      onClick={() => openDay(activeCourse.id, lesson.dayCode)}
+                      className="group flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-brand-50/60"
+                    >
+                      <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 border-slate-300 transition group-hover:border-brand-500" />
+                      <span className="font-medium text-slate-700 group-hover:text-brand-800">
+                        Buổi {lesson.position}: {lesson.title}
+                      </span>
+                      <span className="hidden truncate text-xs text-slate-400 sm:inline">· {lesson.topic}</span>
+                      <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-slate-400">
+                        <BookOpen size={13} /> {lesson.partCount} phần
+                      </span>
+                      <ChevronRight size={16} className="text-slate-300 transition group-hover:text-brand-500" />
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           </section>
@@ -148,9 +139,9 @@ export default function DashboardPage() {
                     <Flame className="text-orange-300" />
                     <span className="text-sm font-semibold">Học hôm nay để bắt đầu chuỗi</span>
                   </div>
-                  {activeCourse && (
+                  {firstLesson && (
                     <button
-                      onClick={() => openDay(activeCourse.id, currentDayId)}
+                      onClick={() => openDay(activeCourse.id, firstLesson.dayCode)}
                       className="cursor-pointer rounded-full bg-white px-4 py-1.5 text-xs font-bold text-brand-800 hover:bg-brand-50"
                     >
                       Vào học

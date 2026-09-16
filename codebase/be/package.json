@@ -1,0 +1,26 @@
+{
+  "name": "vlearn-be",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "migrate": "node --env-file-if-exists=.env src/scripts/migrate.js",
+    "seed": "node --env-file-if-exists=.env src/scripts/seed.js",
+    "setup": "npm run migrate && npm run seed",
+    "db:up": "docker compose up -d db adminer",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d db adminer"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.0",
+    "zod": "^3.24.0"
+  }
+}

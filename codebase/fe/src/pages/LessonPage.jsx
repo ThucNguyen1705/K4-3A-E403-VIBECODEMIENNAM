@@ -1,26 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Hand, Loader2, Menu, Presentation, Sparkles } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Hand, Loader2, Menu, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 import { getLesson } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { setLastDay, useProgress } from '../hooks/useProgress'
+import { useProgress } from '../hooks/useProgress'
 import UserMenu from '../components/UserMenu'
 import LessonSidebar from '../components/lesson/LessonSidebar'
 import ContentRenderer from '../components/lesson/ContentRenderer'
 import TutorPanel from '../components/lesson/TutorPanel'
 import SelectionAskButton from '../components/lesson/SelectionAskButton'
-
-// Làm phẳng slides + parts thành một danh sách tuần tự để điều hướng trước/sau
-function flatten(lesson) {
-  const items = lesson.slides.map((s) => ({ key: `slide:${s.id}`, kind: 'slide', data: s }))
-  lesson.labs.forEach((lab) =>
-    lab.groups.forEach((g) =>
-      g.parts.forEach((p) => items.push({ key: `${lab.id}:${p.id}`, kind: 'part', data: p, lab, group: g })),
-    ),
-  )
-  return items
-}
 
 export default function LessonPage() {
   const { courseId, dayId } = useParams()
@@ -46,20 +35,20 @@ function LessonView({ courseId, dayId }) {
   }
 
   useEffect(() => {
-    setLastDay(courseId, dayId)
     getLesson(courseId, dayId).then(setLesson).catch((e) => setError(e.message))
   }, [courseId, dayId])
 
-  const items = useMemo(() => (lesson ? flatten(lesson) : []), [lesson])
+  const parts = lesson?.parts ?? []
+  const index = Math.max(
+    0,
+    parts.findIndex((p) => p.id === searchParams.get('part')),
+  )
+  const current = parts[index]
 
-  const numbering = useMemo(() => {
-    const map = {}
-    let n = 0
-    items.forEach((it) => {
-      if (it.kind === 'part' && it.data.type !== 'code') map[it.key] = ++n
-    })
-    return map
-  }, [items])
+  // Cuộn lên đầu khi đổi phần nội dung
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 })
+  }, [current?.id])
 
   if (error) {
     return (
@@ -82,21 +71,16 @@ function LessonView({ courseId, dayId }) {
     )
   }
 
-  const firstPart = items.find((it) => it.kind === 'part')?.key ?? items[0]?.key
-  const selectedKey = items.some((it) => it.key === searchParams.get('part')) ? searchParams.get('part') : firstPart
-  const index = items.findIndex((it) => it.key === selectedKey)
-  const current = items[index]
-  const select = (key) => setSearchParams({ part: key }, { replace: true })
-
-  const doneCount = items.filter((it) => done.includes(it.key) || it.data.done).length
-  const percent = Math.round((doneCount / items.length) * 100)
-  const isDone = done.includes(current.key) || current.data.done
+  const select = (partId) => setSearchParams({ part: partId }, { replace: true })
+  const doneCount = parts.filter((p) => done.includes(p.id)).length
+  const percent = parts.length ? Math.round((doneCount / parts.length) * 100) : 0
+  const isDone = current && done.includes(current.id)
 
   return (
     <div className="flex h-full flex-col bg-white">
       {/* HEADER — 52px như prototype */}
       <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
@@ -113,15 +97,15 @@ function LessonView({ courseId, dayId }) {
               <Menu size={18} />
             </button>
           )}
-          <span className="font-semibold text-slate-900">
-            Bài {lesson.day.order} · {lesson.day.title}
+          <span className="truncate font-semibold text-slate-900">
+            Bài {lesson.position} · {lesson.title}
           </span>
         </div>
 
         <div className="flex items-center gap-5">
           <div className="hidden items-center gap-3 md:flex">
             <span className="text-sm text-slate-500">
-              {doneCount}/{items.length} bài
+              {doneCount}/{parts.length} phần
             </span>
             <div className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-200">
               <div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${percent}%` }} />
@@ -149,79 +133,73 @@ function LessonView({ courseId, dayId }) {
         {showSidebar && (
           <LessonSidebar
             lesson={lesson}
-            selected={selectedKey}
+            selectedId={current?.id}
             onSelect={select}
-            doneKeys={done}
-            numbering={numbering}
+            doneIds={done}
             onClose={() => setShowSidebar(false)}
           />
         )}
 
         <main ref={contentRef} className="thin-scroll flex-1 overflow-y-auto bg-white px-12 pt-7 pb-16">
           <div className="mx-auto max-w-[820px]">
-            {current.kind === 'part' && (
-              <p className="mb-2 text-xs font-semibold tracking-wide text-brand-600 uppercase">
-                {current.lab.title}
-                {current.group.title && ` · ${current.group.title}`}
-              </p>
-            )}
-            <h1 className="text-3xl font-bold text-slate-900">{current.data.title}</h1>
-
-            {current.kind === 'slide' ? (
-              <div className="mt-6 grid aspect-video place-items-center rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white">
-                <div className="text-center text-slate-500">
-                  <Presentation size={48} className="mx-auto text-brand-400" />
-                  <p className="mt-3 font-medium text-slate-700">{current.data.title}</p>
-                  <p className="text-sm">Trình xem slide (mock) — sẽ nhúng file thật từ backend</p>
-                </div>
-              </div>
+            {!current ? (
+              <p className="mt-10 text-center text-slate-500">Ngày học này chưa có nội dung.</p>
             ) : (
-              <ContentRenderer blocks={current.data.blocks} />
+              <>
+                <p className="mb-2 text-xs font-semibold tracking-wide text-brand-600 uppercase">
+                  {lesson.topic} · Phần {current.position}/{parts.length}
+                </p>
+                <h1 className="text-3xl font-bold text-slate-900">{current.title}</h1>
+
+                <ContentRenderer content={current.content} />
+
+                {/* Footer điều hướng */}
+                <div className="mt-12 flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
+                  <button
+                    disabled={index === 0}
+                    onClick={() => select(parts[index - 1].id)}
+                    className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft size={16} /> Phần trước
+                  </button>
+
+                  <button
+                    onClick={() => toggle(current.id)}
+                    className={clsx(
+                      'flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition',
+                      isDone
+                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        : 'border border-brand-200 text-brand-700 hover:bg-brand-50',
+                    )}
+                  >
+                    <CheckCircle2 size={16} />
+                    {isDone ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
+                  </button>
+
+                  <button
+                    disabled={index === parts.length - 1}
+                    onClick={() => {
+                      if (!isDone) toggle(current.id)
+                      select(parts[index + 1].id)
+                    }}
+                    className="flex cursor-pointer items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Phần tiếp theo <ChevronRight size={16} />
+                  </button>
+                </div>
+              </>
             )}
-
-            {/* Footer điều hướng */}
-            <div className="mt-12 flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
-              <button
-                disabled={index === 0}
-                onClick={() => select(items[index - 1].key)}
-                className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft size={16} /> Bài trước
-              </button>
-
-              <button
-                disabled={current.data.done}
-                onClick={() => toggle(current.key)}
-                className={clsx(
-                  'flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-default',
-                  isDone
-                    ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                    : 'border border-brand-200 text-brand-700 hover:bg-brand-50',
-                )}
-              >
-                <CheckCircle2 size={16} />
-                {isDone ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
-              </button>
-
-              <button
-                disabled={index === items.length - 1}
-                onClick={() => {
-                  if (!isDone) toggle(current.key)
-                  select(items[index + 1].key)
-                }}
-                className="flex cursor-pointer items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Bài tiếp theo <ChevronRight size={16} />
-              </button>
-            </div>
           </div>
         </main>
         <SelectionAskButton containerRef={contentRef} onAsk={askAboutSelection} />
 
         {showTutor && (
           <TutorPanel
-            lessonTitle={current.data.title}
+            lessonTitle={current?.title ?? lesson.title}
             userName={user?.shortName}
+            courseId={courseId}
+            dayId={dayId}
+            partKey={current?.id}
             context={askContext}
             onClearContext={() => setAskContext('')}
             onClose={() => setShowTutor(false)}

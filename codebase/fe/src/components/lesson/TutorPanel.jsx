@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, Paperclip, Plus, Sparkles, X } from 'lucide-react'
+import { ArrowUp, Loader2, Paperclip, Plus, Sparkles, X } from 'lucide-react'
+import { askTutor } from '../../services/api'
 
 const truncate = (s, n) => (s.length > n ? `${s.slice(0, n)}…` : s)
 
-// Khung Trợ giảng AI — phần trả lời hiện là mock, tính năng AI sẽ phát triển sau.
-export default function TutorPanel({ lessonTitle, userName, context, onClearContext, onClose }) {
+// Khung Trợ giảng AI — gửi câu hỏi tới backend, câu hỏi & phản hồi (mock) được log vào database.
+export default function TutorPanel({ lessonTitle, userName, context, onClearContext, onClose, courseId, dayId, partKey }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
+  const [conversationId, setConversationId] = useState(null)
+  const [sending, setSending] = useState(false)
   const inputRef = useRef(null)
   const bodyRef = useRef(null)
 
@@ -17,23 +20,30 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+  }, [messages, sending])
 
-  const send = () => {
+  const send = async () => {
     const text = input.trim() || (context ? 'Giải thích giúp mình đoạn này' : '')
-    if (!text) return
-    setMessages((m) => [...m, { role: 'user', text, context }])
+    if (!text || sending) return
+    const sentContext = context || null
+    setMessages((m) => [...m, { role: 'user', text, context: sentContext }])
     setInput('')
     onClearContext()
-    setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        {
-          role: 'tutor',
-          text: 'Trợ giảng AI đang được phát triển. Câu hỏi và đoạn trích của bạn đã được ghi nhận — khi có backend, câu trả lời thật sẽ hiển thị tại đây.',
-        },
-      ])
-    }, 600)
+    setSending(true)
+    try {
+      const res = await askTutor({ conversationId, question: text, context: sentContext, courseId, dayId, partKey })
+      setConversationId(res.conversationId)
+      setMessages((m) => [...m, { role: 'tutor', text: res.aiMessage.content }])
+    } catch (err) {
+      setMessages((m) => [...m, { role: 'error', text: `Không gửi được câu hỏi: ${err.message}` }])
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const newChat = () => {
+    setMessages([])
+    setConversationId(null)
   }
 
   const handleKeyDown = (e) => {
@@ -52,7 +62,7 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
         <div className="flex items-center gap-3">
           {messages.length > 0 && (
             <button
-              onClick={() => setMessages([])}
+              onClick={newChat}
               className="flex cursor-pointer items-center gap-1 text-xs text-slate-500 hover:text-brand-700"
             >
               <Plus size={14} /> Chat mới
@@ -91,12 +101,21 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
             ) : (
               <div
                 key={i}
-                className="max-w-[95%] self-start rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700"
+                className={
+                  m.role === 'error'
+                    ? 'max-w-[95%] self-start rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700'
+                    : 'max-w-[95%] self-start rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm whitespace-pre-line text-slate-700'
+                }
               >
                 {m.text}
               </div>
             ),
           )
+        )}
+        {sending && (
+          <div className="flex items-center gap-2 self-start rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-500">
+            <Loader2 size={14} className="animate-spin" /> Trợ giảng đang trả lời...
+          </div>
         )}
       </div>
 
@@ -122,7 +141,7 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
           />
           <button
             onClick={send}
-            disabled={!input.trim() && !context}
+            disabled={sending || (!input.trim() && !context)}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ArrowUp size={16} />
