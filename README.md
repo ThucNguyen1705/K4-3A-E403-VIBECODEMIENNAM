@@ -4,14 +4,14 @@
 
 ## 👥 Thành viên nhóm & Phân công vai trò
 
-**Lớp:** 3A · **Phòng:** ____ · **Cụm:** ____ · **Track:** ____
+**Lớp:** 3A · **Phòng:** E403 · **Cụm:** ____ · **Track:** A — VLearn Tutor (đề A1 · tối ưu tutor đang chạy)
 
 | Họ và Tên | Mã Học Viên | Vai trò chính | Phần việc đảm nhiệm trong dự án |
 |---|---|---|---|
-|  |  |  |  |
-|  |  |  |  |
-|  |  |  |  |
-|  |  |  |  |
+| Nguyễn Đăng Thực | 2A202603014 | **Đội trưởng** · Spec & nộp checkpoint | Nộp cả 5 form bằng MSSV này · viết `spec.md` §1-§9 · điều phối mốc · dry run trước CP6 |
+| Nguyễn Đức Minh | 2A202602891 | Bằng chứng & mining | Script mining chatlog + phương pháp đếm (`eval/mining/`) · khảo sát 20 người ngoài nhóm có log nguyên văn · bảng impact → `spec.md` §1-§2 |
+| Lâm Hoàng Phúc | 2A202602582 | Build prototype | `codebase/` · mô phỏng khung bôi đen + ô hỏi · nối lời gọi AI thật · dựng 4 đường đi trải nghiệm → `spec.md` §4 |
+| Nguyễn Văn Tài | 2A202603004 | Prompt & kiểm thử | Prompt quyết định nước đi · golden set ≥20 case trong `eval/` · chạy trọn bộ 3 lượt, bảng % đối chiếu quality bar → `spec.md` §7 |
 
 > Nhóm copy nguyên file README này về repo của mình, rồi điền bảng trên. Cột **Phần việc đảm nhiệm** ghi càng cụ thể càng tốt.
 
