@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Hand, Loader2, Menu, Presentation, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
@@ -9,6 +9,7 @@ import UserMenu from '../components/UserMenu'
 import LessonSidebar from '../components/lesson/LessonSidebar'
 import ContentRenderer from '../components/lesson/ContentRenderer'
 import TutorPanel from '../components/lesson/TutorPanel'
+import SelectionAskButton from '../components/lesson/SelectionAskButton'
 
 // Làm phẳng slides + parts thành một danh sách tuần tự để điều hướng trước/sau
 function flatten(lesson) {
@@ -35,7 +36,14 @@ function LessonView({ courseId, dayId }) {
   const [error, setError] = useState('')
   const [showSidebar, setShowSidebar] = useState(true)
   const [showTutor, setShowTutor] = useState(false)
+  const [askContext, setAskContext] = useState('')
+  const contentRef = useRef(null)
   const { done, toggle } = useProgress(courseId, dayId)
+
+  const askAboutSelection = (text) => {
+    setAskContext(text)
+    setShowTutor(true)
+  }
 
   useEffect(() => {
     setLastDay(courseId, dayId)
@@ -149,7 +157,7 @@ function LessonView({ courseId, dayId }) {
           />
         )}
 
-        <main className="thin-scroll flex-1 overflow-y-auto bg-white px-12 pt-7 pb-16">
+        <main ref={contentRef} className="thin-scroll flex-1 overflow-y-auto bg-white px-12 pt-7 pb-16">
           <div className="mx-auto max-w-[820px]">
             {current.kind === 'part' && (
               <p className="mb-2 text-xs font-semibold tracking-wide text-brand-600 uppercase">
@@ -208,11 +216,14 @@ function LessonView({ courseId, dayId }) {
             </div>
           </div>
         </main>
+        <SelectionAskButton containerRef={contentRef} onAsk={askAboutSelection} />
 
         {showTutor && (
           <TutorPanel
             lessonTitle={current.data.title}
             userName={user?.shortName}
+            context={askContext}
+            onClearContext={() => setAskContext('')}
             onClose={() => setShowTutor(false)}
           />
         )}
