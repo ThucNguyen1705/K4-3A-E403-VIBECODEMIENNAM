@@ -53,9 +53,9 @@
 
 | # | Tên / vai | Cam kết |
 |---|---|---|
-| 1 | *(điền tên — bạn cùng phòng E403, ngoài nhóm)* | Thử prototype trước CP5 |
-| 2 | *(điền tên — bạn nhóm khác, đổi chéo)* | Thử prototype trước CP5 |
-| 3 | *(điền tên)* | Thử prototype trước CP5 |
+| 1 | Đinh Trường An | Thử prototype trước CP5 |
+| 2 | Trần Văn Tuấn | Thử prototype trước CP5 |
+| 3 | Lưu Xuân Dũng | Thử prototype trước CP5 |
 
 ## 8 · Phân công
 

@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Canvas VIBECODEMIENNAM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f6f2eb;
+        --paper: #fffdf9;
+        --ink: #1c1b1f;
+        --muted: #5e5a55;
+        --faint: #8a847c;
+        --line: #e4ddd2;
+        --green: #3d7a4a;
+        --blue: #3a78b5;
+        --purple: #7a5bb0;
+        --purple-bg: #f3eefb;
+        --purple-line: #cfc0ea;
+        --amber: #b0741c;
+        --amber-bg: #fbf3e2;
+        --callout: #eaf0f8;
+        --chip: #f1ebdf;
+        --serif: "Noto Serif", Georgia, serif;
+        --sans: "Be Vietnam Pro", system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #1a1917;
+          --paper: #22211e;
+          --ink: #ece8e1;
+          --muted: #b3ada4;
+          --faint: #8a847c;
+          --line: #3a3732;
+          --green: #6fb07c;
+          --blue: #72a8dc;
+          --purple: #a88ddb;
+          --purple-bg: #2a2534;
+          --purple-line: #4d4163;
+          --amber: #d9a24e;
+          --amber-bg: #2e2719;
+          --callout: #1f2733;
+          --chip: #302d28;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #1a1917;
+        --paper: #22211e;
+        --ink: #ece8e1;
+        --muted: #b3ada4;
+        --faint: #8a847c;
+        --line: #3a3732;
+        --green: #6fb07c;
+        --blue: #72a8dc;
+        --purple: #a88ddb;
+        --purple-bg: #2a2534;
+        --purple-line: #4d4163;
+        --amber: #d9a24e;
+        --amber-bg: #2e2719;
+        --callout: #1f2733;
+        --chip: #302d28;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.55 var(--sans);
+      }
+      .canvas {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 40px 48px 24px;
+      }
+      code,
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.88em;
+      }
+      b {
+        font-weight: 700;
+      }
+
+      /* Header */
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+        flex: none;
+      }
+      h1 {
+        font-family: var(--serif);
+        font-size: 38px;
+        line-height: 1.1;
+        margin: 4px 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0;
+        max-width: 760px;
+      }
+      .lede b {
+        color: var(--ink);
+      }
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(100px, 1fr));
+        border: 1px solid var(--line);
+        background: var(--paper);
+        flex: none;
+      }
+      .meta div {
+        padding: 8px 16px;
+        border: 1px solid var(--line);
+        margin: -1px 0 0 -1px;
+      }
+      .meta small {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        color: var(--faint);
+        font-weight: 600;
+      }
+      .meta strong {
+        font-size: 15px;
+      }
+      .meta .accent {
+        color: var(--amber);
+      }
+
+      /* Grid */
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-top: 2px solid var(--c);
+        padding: 20px 22px;
+        display: flex;
+        flex-direction: column;
+      }
+      .card.c1 {
+        --c: var(--green);
+      }
+      .card.c2 {
+        --c: var(--blue);
+      }
+      .card.c3 {
+        --c: var(--purple);
+      }
+      .card.c4 {
+        --c: var(--amber);
+      }
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .kicker {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--c);
+      }
+      .aside {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: left;
+        max-width: 150px;
+      }
+      h2 {
+        font-family: var(--serif);
+        font-size: 22px;
+        line-height: 1.25;
+        margin: 6px 0 12px;
+      }
+      .label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 10px 0 2px;
+      }
+      p {
+        margin: 0;
+      }
+      .italic {
+        font-style: italic;
+        color: var(--muted);
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 12px;
+        background: var(--chip);
+        padding: 1px 6px;
+        border-radius: 2px;
+        white-space: nowrap;
+      }
+      .foot {
+        margin-top: auto;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .foot b {
+        color: var(--ink);
+      }
+      .spacer {
+        flex: 1;
+        min-height: 12px;
+      }
+
+      /* Stats */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--line);
+      }
+      .stat {
+        padding: 10px 12px;
+        border-left: 1px solid var(--line);
+      }
+      .stat:first-child {
+        border-left: 0;
+      }
+      .stat .num {
+        font-family: var(--serif);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--blue);
+        line-height: 1.2;
+      }
+      .stat .desc {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .callout {
+        background: var(--callout);
+        padding: 10px 12px;
+        margin: 14px 0 12px;
+        font-size: 13.5px;
+      }
+      .quotes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        margin-bottom: 10px;
+      }
+      .quotes .chip {
+        white-space: normal;
+        font-size: 11.5px;
+      }
+      .method {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+
+      /* Moves */
+      .moves {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .move {
+        background: var(--purple-bg);
+        border: 1px solid var(--purple-line);
+        padding: 6px 10px;
+      }
+      .move strong {
+        display: block;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        color: var(--purple);
+      }
+      .move span {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .slice {
+        border-left: 3px solid var(--ink);
+        padding-left: 12px;
+        font-weight: 500;
+        font-size: 14.5px;
+        margin-bottom: 8px;
+      }
+
+      /* Users + team */
+      .slots {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin: 4px 0 14px;
+      }
+      .slot {
+        border: 1px solid var(--amber);
+        background: var(--amber-bg);
+        color: var(--ink);
+        font-weight: 600;
+        font-size: 13px;
+        padding: 4px 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--line);
+        font-size: 13.5px;
+      }
+      td {
+        padding: 6px 10px;
+        border-top: 1px solid var(--line);
+      }
+      td:first-child {
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      td.mono {
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .lead {
+        color: var(--amber);
+        font-weight: 700;
+      }
+
+      /* Footer */
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      footer .mono {
+        font-size: 11px;
+      }
+      footer p {
+        max-width: 830px;
+      }
+      footer b {
+        color: var(--ink);
+      }
+
+      @media (max-width: 1100px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .canvas {
+          padding: 24px 16px;
+        }
+        header,
+        footer {
+          flex-direction: column;
+        }
+        h1 {
+          font-size: 30px;
+        }
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .stat:nth-child(3) {
+          border-left: 0;
+        }
+        .stat:nth-child(n + 3) {
+          border-top: 1px solid var(--line);
+        }
+        .moves,
+        .slots {
+          grid-template-columns: 1fr;
+        }
+        .card-head {
+          flex-direction: column;
+          gap: 0;
+        }
+        .table-wrap {
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="canvas">
+      <header>
+        <div>
+          <div class="eyebrow">Mini Hackathon AI · Checkpoint 1 · Canvas</div>
+          <h1>VIBECODEMIENNAM</h1>
+          <p class="lede">
+            Hướng <b>A · đề A1</b> — tối ưu AI tutor đang chạy trên VLearn: bắt
+            tutor <b>chọn một nước đi trước khi trả lời</b> thay vì đoán.
+          </p>
+        </div>
+        <div class="meta">
+          <div><small>LỚP</small><strong>3A</strong></div>
+          <div><small>PHÒNG</small><strong>E403</strong></div>
+          <div><small>CỤM</small><strong class="accent">ZONE1</strong></div>
+          <div><small>PROTOTYPE</small><strong>Mock</strong></div>
+        </div>
+      </header>
+
+      <main class="grid">
+        <!-- 01 -->
+        <section class="card c1">
+          <div class="card-head">
+            <div class="kicker">01 · Người dùng và nỗi đau</div>
+            <div class="aside">448 học viên K4</div>
+          </div>
+          <h2>Tutor đoán thay vì hỏi lại một câu</h2>
+
+          <div class="label">Job executor</div>
+          <p>
+            Học viên K4 đang học một bài trên VLearn, bôi đen một đoạn slide rồi
+            gõ câu hỏi ngay trong trang học.
+          </p>
+
+          <div class="label">Job — không có chữ AI</div>
+          <p class="italic">
+            Khi đang đọc một đoạn tài liệu mà không hiểu, tôi muốn gỡ đúng chỗ
+            tắc ngay tại chỗ, để đi tiếp bài mà không phải bỏ dở đi tìm người
+            hỏi.
+          </p>
+
+          <div class="label">Pain — AI · đang làm gì · vướng đâu</div>
+          <p>
+            Học viên gõ một câu cụt <span class="chip">giải thích</span>
+            <span class="chip">tiếp</span>
+            <span class="chip">slide này là sao?</span> hoặc hỏi thứ không có
+            trong tài liệu đang mở. Tutor không hỏi lại câu nào, trả lời thẳng
+            một đoạn <b>~786 ký tự</b> đoán theo ngữ cảnh.
+          </p>
+
+          <div class="spacer"></div>
+          <p class="foot">
+            Hậu quả: nhận nội dung lạc đề hoặc không căn cứ, mất thêm lượt hỏi
+            để nắn lại —
+            <b>114/448 học viên hỏi đúng một câu rồi không quay lại.</b>
+          </p>
+        </section>
+
+        <!-- 02 -->
+        <section class="card c2">
+          <div class="card-head">
+            <div class="kicker">02 · Bằng chứng ban đầu</div>
+            <div class="aside">Chuẩn B · mining</div>
+          </div>
+          <h2>Đếm trên 3.097 lượt của chính khoá 4</h2>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="num">17,5%</div>
+              <div class="desc">542 câu hỏi cụt, dưới 25 ký tự</div>
+            </div>
+            <div class="stat">
+              <div class="num">9,8%</div>
+              <div class="desc">
+                trong đó được hỏi lại; 489 lần trả lời thẳng
+              </div>
+            </div>
+            <div class="stat">
+              <div class="num">32,8%</div>
+              <div class="desc">trả lời không có trích dẫn trang</div>
+            </div>
+            <div class="stat">
+              <div class="num">3,5%</div>
+              <div class="desc">thừa nhận không có trong tài liệu</div>
+            </div>
+          </div>
+
+          <div class="callout">
+            Trang chủ <b>vlearn.dev</b> mô tả tutor “hỏi ngược kiểu Socratic
+            thay vì đưa đáp án”. Log 3.097 lượt khoá 4: hỏi lại <b>9,8%</b> số
+            câu mơ hồ, trường <code>understanding_level</code> trống
+            <b>99,8%</b>.
+          </div>
+
+          <div class="quotes">
+            <span class="chip">T10289 “tôi phải làm gì ? ở đây”</span>
+            <span class="chip">T10318 “đây”</span>
+            <span class="chip">T10296 “which model r u”</span>
+            <span class="chip">T10305 “mai tôi học cái gì”</span>
+            <span class="chip">15 lượt chỉ gõ “hi”</span>
+          </div>
+
+          <div class="spacer"></div>
+          <p class="method">
+            Phương pháp: đếm trên <code>tutor_turns.csv</code>, lọc
+            <code>cohort_hint=K4</code>; script và quy tắc đếm lưu trong
+            <code>eval/mining/</code> để người khác kiểm lại. Khảo sát 20 người
+            ngoài nhóm bổ sung trước CP4.
+          </p>
+        </section>
+
+        <!-- 03 -->
+        <section class="card c3">
+          <div class="card-head">
+            <div class="kicker">03 · Lát cắt và automation</div>
+            <div class="aside">1 user · 1 việc · 1 quyết định · 1 kết quả</div>
+          </div>
+          <h2>Một câu hỏi, một quyết định nước đi</h2>
+
+          <div class="moves">
+            <div class="move">
+              <strong>TRẢ LỜI + [trang N]</strong
+              ><span>đoạn được chọn đủ căn cứ</span>
+            </div>
+            <div class="move">
+              <strong>HỎI LẠI MỘT CÂU</strong
+              ><span>input mơ hồ, thiếu thông tin</span>
+            </div>
+            <div class="move">
+              <strong>KHÔNG CÓ CĂN CỨ</strong
+              ><span>ngoài phạm vi, kèm chỗ nên tìm</span>
+            </div>
+          </div>
+
+          <p class="slice">
+            Một học viên K4 đang học một bài trên VLearn ·
+            <b>bôi đen một đoạn slide rồi gõ câu hỏi</b> ·
+            <b>tutor chọn một nước đi trước khi trả lời</b> ·
+            <b>học viên không bao giờ nhận một câu trả lời không có căn cứ.</b>
+          </p>
+
+          <div class="label">
+            Automation — conditional · lý do theo cost-of-error
+          </div>
+          <p>
+            Trả lời sai kiến thức thì học viên mang kiến thức sai vào quiz và
+            bài lab — sửa rất đắt, và thường không ai biết để sửa. Hỏi lại thừa
+            một câu chỉ tốn 5 giây và học viên gạt đi được ngay.
+          </p>
+
+          <div class="spacer"></div>
+          <p class="foot">
+            <b>Non-goals:</b> không dựng lại UI VLearn · không cá nhân hoá theo
+            lịch sử học viên · không làm dashboard cho giảng viên · không sửa
+            nội dung slide.
+          </p>
+        </section>
+
+        <!-- 04 -->
+        <section class="card c4">
+          <div class="card-head">
+            <div class="kicker">04 · Người thử và phân công</div>
+            <div class="aside">4 thành viên</div>
+          </div>
+          <h2>Có người thử, có người chịu trách nhiệm</h2>
+
+          <div class="label">Willing users — khai từ CP1, dùng lại ở CP5</div>
+          <div class="slots">
+            <div class="slot">Đinh Trường An</div>
+            <div class="slot">Trần Văn Tuấn</div>
+            <div class="slot">Lưu Xuân Dũng</div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <tr>
+                <td>Nguyễn Đăng Thực</td>
+                <td class="mono">2A202603014</td>
+                <td>
+                  <span class="lead">Đội trưởng</span> · spec.md, nộp cả 5 mốc
+                </td>
+              </tr>
+              <tr>
+                <td>Nguyễn Đức Minh</td>
+                <td class="mono">2A202602891</td>
+                <td>Mining, khảo sát 20 người có log</td>
+              </tr>
+              <tr>
+                <td>Lâm Hoàng Phúc</td>
+                <td class="mono">2A202602582</td>
+                <td>Prototype, lời gọi AI thật</td>
+              </tr>
+              <tr>
+                <td>Nguyễn Văn Tài</td>
+                <td class="mono">2A202603004</td>
+                <td>Prompt, golden set 20 case trở lên</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="spacer"></div>
+          <p class="foot">
+            Cả 5 mốc nộp bằng <b>một mã học viên duy nhất của đội trưởng</b> —
+            BTC ghép phiếu của nhóm theo mã người nộp.
+          </p>
+        </section>
+      </main>
+
+      <footer>
+        <div class="mono">K4-3A-E403-<br />VIBECODEMIENNAM</div>
+        <p>
+          <b>Quality bar</b> — chốt tại CP4, 21:00 ngày 17/9, sau đó không sửa:
+          đạt khi <b>≥70%</b> golden set qua, <b>và 100%</b> case lớp ① không
+          nói chắc khi không có căn cứ.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
