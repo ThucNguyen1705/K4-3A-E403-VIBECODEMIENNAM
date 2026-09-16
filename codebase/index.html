@@ -356,24 +356,26 @@
       cursor: pointer;
     }
 
-    /* FLOATING POPUP KHI BÔI ĐEN CHỮ */
+    /* FLOATING POPUP KHI BÔI ĐEN CHỮ (HIỂN THỊ CHÍNH XÁC TẠI VỊ TRÍ CON TRỎ CHUỘT CỦA USER) */
     .highlight-popup {
-      position: absolute;
+      position: fixed;
       display: none;
       background: #231d3d;
       border: 1px solid #7c3aed;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 16px var(--accent-purple-glow);
       border-radius: 8px;
       padding: 6px 12px;
-      z-index: 50;
+      z-index: 9999;
       transform: translate(-50%, -100%);
-      margin-top: -8px;
+      margin-top: -10px;
       cursor: pointer;
       font-size: 12.5px;
       font-weight: 600;
       color: #e9d5ff;
       white-space: nowrap;
+      user-select: none;
       animation: popIn 0.15s ease-out;
+      pointer-events: auto;
     }
     .highlight-popup:hover {
       background: #312658;
@@ -1116,6 +1118,13 @@
   <script>
     // State quản lý tương tác
     let selectedTextContext = "";
+    let lastMousePos = { x: 0, y: 0 };
+
+    // Bắt tọa độ con trỏ chuột của người dùng khi di chuyển hoặc nhả chuột
+    document.addEventListener("mousemove", (e) => {
+      lastMousePos.x = e.clientX;
+      lastMousePos.y = e.clientY;
+    });
 
     // Xử lý bôi đen văn bản trong vùng bài giảng
     const lectureArea = document.getElementById("lectureContentArea");
@@ -1124,23 +1133,49 @@
     const previewText = document.getElementById("selectionPreviewText");
     const chatInput = document.getElementById("chatInput");
 
-    document.addEventListener("selectionchange", () => {
-      const selection = window.getSelection();
-      const text = selection.toString().trim();
+    // Hiển thị tooltip ngay tại vị trí nhả chuột (mouseup) của người dùng
+    document.addEventListener("mouseup", (e) => {
+      // Nếu click vào chính tooltip thì không ẩn
+      if (highlightTooltip.contains(e.target)) return;
 
-      if (text.length > 5 && lectureArea.contains(selection.anchorNode)) {
-        selectedTextContext = text;
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
+      setTimeout(() => {
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
 
-        highlightTooltip.style.display = "block";
-        highlightTooltip.style.left = `${rect.left + rect.width / 2}px`;
-        highlightTooltip.style.top = `${rect.top - 6}px`;
-      } else {
-        // Ẩn nếu không click vào chính tooltip
-        if (!highlightTooltip.matches(":hover")) {
+        if (text.length > 3 && lectureArea.contains(selection.anchorNode)) {
+          selectedTextContext = text;
+
+          // Bắt vị trí nhả chuột của người dùng
+          let posX = e.clientX || lastMousePos.x;
+          let posY = e.clientY || lastMousePos.y;
+
+          // Nếu vị trí chuột quá sát mép trên màn hình (< 50px) thì hiện popup phía dưới con trỏ
+          if (posY < 50) {
+            highlightTooltip.style.transform = "translate(-50%, 0%)";
+            highlightTooltip.style.marginTop = "12px";
+          } else {
+            highlightTooltip.style.transform = "translate(-50%, -100%)";
+            highlightTooltip.style.marginTop = "-10px";
+          }
+
+          // Giới hạn trong khung nhìn để không bị tràn ra ngoài màn hình
+          const windowWidth = window.innerWidth;
+          if (posX < 120) posX = 120;
+          if (posX > windowWidth - 120) posX = windowWidth - 120;
+
+          highlightTooltip.style.left = `${posX}px`;
+          highlightTooltip.style.top = `${posY}px`;
+          highlightTooltip.style.display = "block";
+        } else {
           highlightTooltip.style.display = "none";
         }
+      }, 50);
+    });
+
+    // Ẩn tooltip khi người dùng bắt đầu chọn lại hoặc click ra ngoài
+    document.addEventListener("mousedown", (e) => {
+      if (!highlightTooltip.contains(e.target)) {
+        highlightTooltip.style.display = "none";
       }
     });
 
