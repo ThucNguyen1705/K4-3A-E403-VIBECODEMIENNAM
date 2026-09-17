@@ -66,12 +66,12 @@ if (fs.existsSync(CACHE_PATH)) {
   } catch {}
 }
 
-async function callGemini(question, context, slidePage) {
+async function callGemini(question, context, lesson, section) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`
 
   let currentPrompt = ''
   if (context && context.trim()) {
-    currentPrompt += `[ĐOẠN TÀI LIỆU SLIDE TRANG ${slidePage || '...' }]:\n"""\n${context.trim()}\n"""\n\n`
+    currentPrompt += `[TÀI LIỆU BÀI HỌC ${lesson || 'D01'} - ${section || 'Bài đọc'}]:\n"""\n${context.trim()}\n"""\n\n`
   }
   currentPrompt += `[CÂU HỎI]:\n${question.trim()}`
 
@@ -143,13 +143,15 @@ function evaluateCriteria(item, reply) {
       reply.includes('[trang') ||
       reply.includes('trang ') ||
       reply.includes('Trang ') ||
+      reply.includes('[Day0') ||
+      reply.includes('Day0') ||
       reply.includes('[Tài liệu')
     const pass = hasCitation
     return {
       pass,
       reason: pass
-        ? '✅ Trả lời có trích dẫn nguồn số trang.'
-        : '❌ Trả lời được nhưng thiếu trích dẫn [Trang N].',
+        ? '✅ Trả lời có trích dẫn nguồn bài học.'
+        : '❌ Trả lời được nhưng thiếu trích dẫn nguồn [Day0X...].',
     }
   }
 
@@ -198,7 +200,7 @@ async function run() {
       latency = 100
       process.stdout.write(`(dùng cache) `)
     } else {
-      const res = await callGemini(item.student_question, item.selected_text, item.slide_page)
+      const res = await callGemini(item.student_question, item.selected_text, item.lesson, item.section)
       reply = res.reply
       latency = res.latency
 
