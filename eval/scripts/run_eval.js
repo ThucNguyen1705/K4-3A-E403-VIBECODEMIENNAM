@@ -23,11 +23,14 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.argv[2]
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.argv[2]
+const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '')
+const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+// Khoảng nghỉ giữa các lượt gọi mới (ms). OpenAI trả phí không cần nghỉ lâu như free tier Gemini.
+const DELAY_MS = Number(process.env.EVAL_DELAY_MS ?? 500)
 
-if (!GEMINI_API_KEY) {
-  console.error('❌ Lỗi: Chưa cung cấp GEMINI_API_KEY!')
+if (!OPENAI_API_KEY) {
+  console.error('❌ Lỗi: Chưa cung cấp OPENAI_API_KEY! (đặt trong codebase/be/.env hoặc truyền làm tham số)')
   process.exit(1)
 }
 
@@ -58,16 +61,19 @@ Học viên hỏi: "Hạn nộp bài là mấy giờ?"
 Trợ giảng trả lời:
 "Nội dung này không có trong tài liệu bài học đang mở. Bạn vui lòng kiểm tra thông báo trên kênh Discord của lớp nhé!"`
 
-// Đọc cache đã chạy thành công trước đó (tránh gọi lại tốn quota 5 req/phút)
+// Đọc cache đã chạy thành công trước đó (tránh gọi lại tốn tiền).
+// Khoá cache gồm tên model, để câu trả lời của model cũ (vd Gemini) không bị tính cho model mới.
 let cache = {}
 if (fs.existsSync(CACHE_PATH)) {
   try {
     cache = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf-8'))
   } catch {}
 }
+const cacheKey = (id) => `${MODEL_NAME}::${id}`
+const cachedCount = () => Object.keys(cache).filter((k) => k.startsWith(`${MODEL_NAME}::`)).length
 
-async function callGemini(question, context, lesson, section) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`
+async function callOpenAI(question, context, lesson, section) {
+  const url = `${OPENAI_BASE_URL}/chat/completions`
 
   let currentPrompt = ''
   if (context && context.trim()) {
@@ -80,38 +86,43 @@ async function callGemini(question, context, lesson, section) {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-          contents: [{ role: 'user', parts: [{ text: currentPrompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 300,
-          },
+          model: MODEL_NAME,
+          messages: [
+            { role: 'system', content: SYSTEM_INSTRUCTION },
+            { role: 'user', content: currentPrompt },
+          ],
+          max_completion_tokens: 300,
+          // Model reasoning (gpt-5, o-series) không nhận temperature tuỳ chỉnh
+          ...(/^(gpt-5|o\d)/.test(MODEL_NAME) ? {} : { temperature: 0.1 }),
         }),
       })
 
       if (res.ok) {
         const data = await res.json()
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
+        const reply = data.choices?.[0]?.message?.content?.trim() || ''
         return { reply, latency: Date.now() - start }
       }
 
-      if (res.status === 429 || res.status === 503) {
-        const waitSec = 35 + attempt * 5
-        console.log(`\n⏳ Gặp ${res.status} (Rate limit/Busy), chờ ${waitSec}s rồi thử lại lần ${attempt}/4...`)
+      // 429 (rate limit) và 5xx là lỗi tạm thời → lùi dần rồi thử lại
+      if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+        const retryAfter = Number(res.headers.get('retry-after'))
+        const waitSec = retryAfter > 0 ? retryAfter : 2 ** attempt
+        console.log(`\n⏳ Gặp ${res.status}, chờ ${waitSec}s rồi thử lại lần ${attempt}/3...`)
         await new Promise((r) => setTimeout(r, waitSec * 1000))
         continue
       }
 
+      // 400/401/404…: thử lại cũng vô ích
       const errText = await res.text()
-      throw new Error(`API Error ${res.status}: ${errText}`)
+      return { reply: `Lỗi: API Error ${res.status}: ${errText.slice(0, 300)}`, latency: 0 }
     } catch (e) {
       if (attempt === 4) {
         return { reply: `Lỗi kết nối: ${e.message}`, latency: 0 }
       }
-      console.log(`\n⚠️ Thử lại sau 20s do: ${e.message}`)
-      await new Promise((r) => setTimeout(r, 20000))
+      console.log(`\n⚠️ Thử lại sau ${2 ** attempt}s do: ${e.message}`)
+      await new Promise((r) => setTimeout(r, 2 ** attempt * 1000))
     }
   }
   return { reply: 'Lỗi: Quá giới hạn thử lại.', latency: 0 }
@@ -121,7 +132,7 @@ function evaluateCriteria(item, reply) {
   const move = item.expected_move
   const text = reply.toLowerCase()
 
-  if (reply.startsWith('Lỗi:') || reply.includes('API Error 429') || reply.includes('API Error 503')) {
+  if (reply.startsWith('Lỗi') || reply.includes('API Error')) {
     return { pass: false, reason: '❌ Gặp lỗi API hoặc quá quota' }
   }
 
@@ -182,7 +193,7 @@ async function run() {
   const goldenSet = JSON.parse(fs.readFileSync(GOLDEN_SET_PATH, 'utf-8'))
 
   console.log(`🧪 Chạy kiểm thử ${goldenSet.length} cases với model ${MODEL_NAME}...`)
-  console.log(`📦 Đã nạp ${Object.keys(cache).length} cases từ cache (những case đã gọi thành công sẽ không gọi lại).\n`)
+  console.log(`📦 Đã nạp ${cachedCount()} cases của ${MODEL_NAME} từ cache (những case đã gọi thành công sẽ không gọi lại).\n`)
 
   const results = []
   let passCount = 0
@@ -195,25 +206,24 @@ async function run() {
     let latency = 0
 
     // Nếu đã có trong cache và không phải lỗi thì tái sử dụng
-    if (cache[item.id] && !cache[item.id].startsWith('Lỗi:') && !cache[item.id].includes('API Error')) {
-      reply = cache[item.id]
+    const cached = cache[cacheKey(item.id)]
+    if (cached && !cached.startsWith('Lỗi') && !cached.includes('API Error')) {
+      reply = cached
       latency = 100
       process.stdout.write(`(dùng cache) `)
     } else {
-      const res = await callGemini(item.student_question, item.selected_text, item.lesson, item.section)
+      const res = await callOpenAI(item.student_question, item.selected_text, item.lesson, item.section)
       reply = res.reply
       latency = res.latency
 
       // Lưu vào cache nếu thành công
-      if (reply && !reply.startsWith('Lỗi:')) {
-        cache[item.id] = reply
+      if (reply && !reply.startsWith('Lỗi')) {
+        cache[cacheKey(item.id)] = reply
         fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), 'utf-8')
       }
 
-      // Nghỉ 14s giữa các lượt gọi API mới để giữ quota 5 req/phút
-      if (i < goldenSet.length - 1) {
-        process.stdout.write(`(nghỉ 14s tránh 429...) `)
-        await new Promise((r) => setTimeout(r, 14000))
+      if (DELAY_MS > 0 && i < goldenSet.length - 1) {
+        await new Promise((r) => setTimeout(r, DELAY_MS))
       }
     }
 
@@ -246,7 +256,7 @@ async function run() {
   let md = `# Kết quả đo lường kiểm thử sơ bộ — Lượt 1 (Run 1)
 
 > Ngày chạy: ${new Date().toLocaleDateString('vi-VN')}
-> Model sử dụng: \`${MODEL_NAME}\` (Google Gemini API thật)
+> Model sử dụng: \`${MODEL_NAME}\` (OpenAI API thật)
 > Bộ kiểm thử: \`eval/golden_set.json\` (20 test cases)
 
 ---
@@ -299,7 +309,7 @@ ${results
 
 ---
 
-## 4. Minh chứng Trace Log gọi AI thật (Google Gemini API)
+## 4. Minh chứng Trace Log gọi AI thật (OpenAI API)
 
 Dưới đây là một số trích đoạn raw response chứng minh hệ thống gọi model thật, không hardcode:
 
