@@ -57,7 +57,10 @@ netsh int ipv4 show excludedportrange protocol=tcp
 
 ### Sửa nội dung bài học
 
-Sửa [src/scripts/seed-data/courses.js](src/scripts/seed-data/courses.js) rồi chạy `npm run seed`. Seed upsert theo `(course_id, day_code)` và `(lesson_id, position)` nên **id giữ nguyên** giữa các lần seed. Ngày học / phần nội dung bị xoá khỏi file cũng bị xoá khỏi DB.
+- Thông tin khoá học / ngày học: [src/scripts/seed-data/courses.js](src/scripts/seed-data/courses.js)
+- Nội dung từng ngày: `src/scripts/seed-data/<courseId>/<dayCode>.md`, ví dụ [k4p1/D01.md](src/scripts/seed-data/k4p1/D01.md). Mỗi dòng `# Tiêu đề` (nằm ngoài khối code) bắt đầu **một phần nội dung**; bên trong phần dùng `##`, `###`.
+
+Sửa xong chạy `npm run seed`. Seed upsert theo `(course_id, day_code)` và `(lesson_id, position)` nên **id giữ nguyên** giữa các lần seed. Ngày học / phần nội dung bị xoá khỏi file cũng bị xoá khỏi DB.
 
 ## API
 
