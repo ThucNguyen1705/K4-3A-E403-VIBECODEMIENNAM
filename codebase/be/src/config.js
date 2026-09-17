@@ -5,7 +5,7 @@ const required = (name, fallback) => {
 }
 
 export const config = {
-  port: Number(process.env.PORT ?? 4000),
+  port: Number(process.env.PORT ?? 8000),
   env: process.env.NODE_ENV ?? 'development',
   databaseUrl: required('DATABASE_URL', 'postgres://vlearn:vlearn@localhost:5433/vlearn'),
   jwtSecret: required('JWT_SECRET', process.env.NODE_ENV === 'production' ? undefined : 'dev-secret'),

@@ -12,10 +12,10 @@ cp .env.example .env          # Windows PowerShell: Copy-Item .env.example .env
 npm install
 npm run db:up                 # Postgres (cổng 5433) + Adminer (http://localhost:8080)
 npm run setup                 # migrate schema + seed dữ liệu
-npm run dev                   # API: http://localhost:4000/api
+npm run dev                   # API: http://localhost:8000/api
 ```
 
-Sau đó chạy frontend (`cd codebase/fe && npm run dev`). Vite proxy `/api` sang cổng 4000.
+Sau đó chạy frontend (`cd codebase/fe && npm run dev`). Vite proxy `/api` sang cổng trong `PORT` của `be/.env` (mặc định 8000).
 
 | Script | Tác dụng |
 | --- | --- |
@@ -27,6 +27,22 @@ Sau đó chạy frontend (`cd codebase/fe && npm run dev`). Vite proxy `/api` sa
 | `docker compose --profile api up -d` | Chạy luôn API trong Docker |
 
 Adminer: System `PostgreSQL`, Server `db`, Username/Password `vlearn`, Database `vlearn`.
+
+### Lỗi `listen EACCES: permission denied` trên Windows
+
+Hyper-V / WSL (Docker Desktop) giữ trước một số dải cổng ngẫu nhiên sau mỗi lần khởi động. Kiểm tra bằng:
+
+```powershell
+netsh int ipv4 show excludedportrange protocol=tcp
+```
+
+- Cách nhanh: đổi `PORT` trong `be/.env` sang cổng nằm ngoài các dải trên (Vite và `dev.sh` tự đọc theo).
+- Cách triệt để (PowerShell **Run as Administrator**, một lần): đưa dải cổng động về mặc định của Windows để Hyper-V không giữ các cổng thấp nữa.
+
+  ```powershell
+  netsh int ipv4 set dynamicport tcp start=49152 num=16384
+  net stop winnat; net start winnat
+  ```
 
 ## Database
 

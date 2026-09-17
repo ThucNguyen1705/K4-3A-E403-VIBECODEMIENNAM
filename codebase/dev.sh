@@ -63,11 +63,46 @@ PIDS=()
 # In log có tiền tố màu: [be] ..., [fe] ...
 prefix() { local tag="$1"; while IFS= read -r line; do printf '%s %s\n' "$tag" "$line"; done; }
 
+# Cổng có đang bị chính VLearn (lần chạy cũ) chiếm không?
+is_ours() { # is_ours <tên> <cổng>
+  case "$1" in
+    be) curl -s --max-time 2 "http://localhost:$2/api/health" | grep -q '"status":"ok"' ;;
+    fe) curl -s --max-time 2 -o /dev/null -w '%{http_code}' "http://localhost:$2/@vite/client" | grep -q 200 ;;
+  esac
+}
+
+# Tắt tiến trình đang LISTEN trên cổng (kèm tiến trình cha `node --watch` nếu có)
+free_port() { # free_port <cổng>
+  local port="$1"
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+      powershell.exe -NoProfile -Command "
+        Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | ForEach-Object {
+          \$p = Get-CimInstance Win32_Process -Filter \"ProcessId=\$(\$_.OwningProcess)\"
+          \$parent = Get-CimInstance Win32_Process -Filter \"ProcessId=\$(\$p.ParentProcessId)\" -ErrorAction SilentlyContinue
+          if (\$parent -and \$parent.CommandLine -match '--watch') { Stop-Process -Id \$parent.ProcessId -Force -ErrorAction SilentlyContinue }
+          Stop-Process -Id \$p.ProcessId -Force -ErrorAction SilentlyContinue
+        }" >/dev/null 2>&1 || true
+      ;;
+    *)
+      local pid ppid
+      for pid in $(lsof -ti "tcp:$port" -sTCP:LISTEN 2>/dev/null); do
+        ppid="$(ps -o ppid= -p "$pid" | tr -d ' ')"
+        ps -o args= -p "$ppid" 2>/dev/null | grep -q -- '--watch' && kill "$ppid" 2>/dev/null
+        kill "$pid" 2>/dev/null || true
+      done
+      ;;
+  esac
+  for _ in $(seq 1 20); do port_busy "$port" || return 0; sleep 0.5; done
+  return 1
+}
+
 run_app() { # run_app <tên> <thư mục> <cổng> <màu>
   local name="$1" dir="$2" port="$3" color="$4"
   if port_busy "$port"; then
-    warn "Cổng $port đang được dùng — bỏ qua $name (có thể đã chạy sẵn)"
-    return
+    is_ours "$name" "$port" || die "Cổng $port đang bị một chương trình khác chiếm — hãy tắt nó rồi chạy lại"
+    warn "Phát hiện $name cũ đang chạy ở cổng $port — tắt và khởi động lại"
+    free_port "$port" || die "Không giải phóng được cổng $port"
   fi
   npm --prefix "$dir" run dev > >(prefix "${color}[$name]${RESET}") 2>&1 &
   PIDS+=("$!")
@@ -101,12 +136,16 @@ case "${1:-start}" in
     start_db
     npm --prefix "$BE" run setup --silent 2>/dev/null | tail -n 1 || warn "Migrate/seed thất bại (bỏ qua)"
 
+    # Cổng backend đọc từ be/.env (Vite cũng đọc cùng giá trị này để proxy /api)
+    API_PORT="$(grep -E '^PORT=' "$BE/.env" | cut -d= -f2 | tr -d '\r ')"
+    API_PORT="${API_PORT:-8000}"
+
     trap cleanup INT TERM EXIT
-    run_app be "$BE" 4000 "$BLUE"
+    run_app be "$BE" "$API_PORT" "$BLUE"
     run_app fe "$FE" 5173 "$GREEN"
 
     echo
-    ok "${BOLD}Frontend:${RESET} http://localhost:5173   ${BOLD}API:${RESET} http://localhost:4000/api"
+    ok "${BOLD}Frontend:${RESET} http://localhost:5173   ${BOLD}API:${RESET} http://localhost:$API_PORT/api"
     ok "Tài khoản demo: demo@vlearn.dev / 123456 — nhấn Ctrl+C để dừng"
     echo
 
