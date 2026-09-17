@@ -39,9 +39,11 @@ function LessonView({ courseId, dayId }) {
   }, [courseId, dayId])
 
   const parts = lesson?.parts ?? []
+  // ?part=<uuid> khi bấm trong sidebar; ?partPos=<số thứ tự> khi bấm trích dẫn của Trợ giảng
+  const partPos = Number(searchParams.get('partPos'))
   const index = Math.max(
     0,
-    parts.findIndex((p) => p.id === searchParams.get('part')),
+    partPos > 0 ? partPos - 1 : parts.findIndex((p) => p.id === searchParams.get('part')),
   )
   const current = parts[index]
 

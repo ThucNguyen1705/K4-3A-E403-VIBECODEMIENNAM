@@ -81,3 +81,53 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages (conversation_id, id);
+
+-- Trợ giảng: nước đi đã chọn và trích dẫn kèm theo (chỉ với role = assistant)
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS move      VARCHAR(40);
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS citations JSONB;
+
+
+-- ---------- Chunk tri thức: đơn vị truy xuất và TRÍCH DẪN ----------
+-- Dựng bằng: node src/scripts/build-index.js --db
+-- Mã chunk (vd D01#p2#s3) chính là mã trích dẫn trợ giảng được phép dùng.
+-- Trợ giảng chỉ được trích mã có thật trong bảng này; mọi mã khác bị coi là bịa.
+CREATE TABLE IF NOT EXISTS lesson_chunks (
+  id            VARCHAR(40)  PRIMARY KEY,       -- D01#p2#s3
+  course_id     VARCHAR(50)  NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  day_code      VARCHAR(50)  NOT NULL,
+  part_position INTEGER      NOT NULL,
+  part_title    VARCHAR(255) NOT NULL,
+  sec_position  INTEGER      NOT NULL,
+  sec_title     VARCHAR(255),                   -- NULL = đoạn mở đầu của phần
+  heading_path  TEXT         NOT NULL,          -- "D01 › LLM hoạt động thế nào? › Token"
+  content       TEXT         NOT NULL,
+  char_len      INTEGER      NOT NULL,
+  search_tsv    TSVECTOR,                       -- tiêu đề trọng số A, nội dung trọng số B
+  embedding     JSONB,                          -- để trống cho tới khi bật tầng vector
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS lesson_chunks_lesson_idx
+  ON lesson_chunks (course_id, day_code, part_position, sec_position);
+CREATE INDEX IF NOT EXISTS lesson_chunks_tsv_idx
+  ON lesson_chunks USING GIN (search_tsv);
+
+-- ---------- Trace quyết định của trợ giảng ----------
+-- Mỗi lượt trả lời ghi lại: nước đi đã chọn, chunk đã truy xuất, chunk đã trích,
+-- và kết quả kiểm trích dẫn. Đây là bằng chứng cho rubric R5 và dữ liệu để đo.
+CREATE TABLE IF NOT EXISTS agent_traces (
+  id              BIGSERIAL PRIMARY KEY,
+  message_id      BIGINT REFERENCES messages(id) ON DELETE CASCADE,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  day_code        VARCHAR(50),                  -- bài học người dùng đang mở
+  intent          VARCHAR(40),                  -- ask_content | locate | meta | chitchat
+  move            VARCHAR(40)  NOT NULL,        -- nước đi cuối cùng sau khi kiểm
+  move_before     VARCHAR(40),                  -- nước đi model chọn, trước khi kiểm
+  confidence      REAL,
+  retrieved_ids   TEXT[],                       -- chunk đưa vào prompt
+  cited_ids       TEXT[],                       -- chunk trợ giảng thực sự trích
+  invalid_ids     TEXT[],                       -- mã bịa bị bắt được
+  cross_lesson    BOOLEAN NOT NULL DEFAULT false,
+  latency_ms      JSONB,                        -- {"retrieve":12,"route":610,"generate":2980}
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS agent_traces_conv_idx ON agent_traces (conversation_id, created_at DESC);

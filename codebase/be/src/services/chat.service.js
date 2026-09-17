@@ -10,6 +10,8 @@ const toMessage = (r) => ({
   context: r.context,
   partKey: r.part_key,
   model: r.model,
+  move: r.move,
+  citations: r.citations ?? [],
   latencyMs: r.latency_ms,
   createdAt: r.created_at,
 })
@@ -37,11 +39,29 @@ async function getOwnedConversation(userId, conversationId, client = { query }) 
 const insertMessage = (client, m) =>
   client
     .query(
-      `INSERT INTO messages (conversation_id, role, content, context, part_key, model, latency_ms)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [m.conversationId, m.role, m.content, m.context ?? null, m.partKey ?? null, m.model ?? null, m.latencyMs ?? null],
+      `INSERT INTO messages (conversation_id, role, content, context, part_key, model, latency_ms, move, citations)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [
+        m.conversationId, m.role, m.content, m.context ?? null, m.partKey ?? null,
+        m.model ?? null, m.latencyMs ?? null, m.move ?? null,
+        m.citations ? JSON.stringify(m.citations) : null,
+      ],
     )
     .then(({ rows }) => toMessage(rows[0]))
+
+// Trace quyết định của trợ giảng — bằng chứng cho R5 và dữ liệu để đo độ bám căn cứ
+const insertTrace = (messageId, conversationId, trace) =>
+  query(
+    `INSERT INTO agent_traces
+       (message_id, conversation_id, day_code, move, move_before, confidence,
+        retrieved_ids, cited_ids, invalid_ids, cross_lesson, latency_ms)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    [
+      messageId, conversationId, trace.dayCode ?? null, trace.move, trace.moveBefore ?? null,
+      trace.confidence ?? null, trace.retrievedIds ?? [], trace.citedIds ?? [], trace.invalidIds ?? [],
+      Boolean(trace.crossLesson), JSON.stringify(trace.latencyMs ?? {}),
+    ],
+  ).catch((e) => console.error('Không ghi được agent_traces:', e.message))
 
 /**
  * Gửi câu hỏi: tạo conversation nếu chưa có, lưu câu hỏi, sinh phản hồi (mock), lưu phản hồi.
@@ -76,7 +96,13 @@ export async function ask(userId, { conversationId, question, context, courseId,
   })
 
   // 2. Sinh phản hồi (ngoài transaction vì có thể lâu)
-  const answer = await generateAnswer({ question, context, history })
+  const answer = await generateAnswer({
+    question,
+    context,
+    history,
+    dayCode: dayId ?? conversation.day_id,
+    courseId: courseId ?? conversation.course_id,
+  })
 
   // 3. Lưu phản hồi của AI
   const aiMessage = await insertMessage({ query }, {
@@ -85,11 +111,14 @@ export async function ask(userId, { conversationId, question, context, courseId,
     content: answer.content,
     partKey: userMessage.partKey,
     model: answer.model,
+    move: answer.move,
+    citations: answer.citations,
     latencyMs: answer.latencyMs,
   })
   await query(`UPDATE conversations SET updated_at = now() WHERE id = $1`, [conversation.id])
+  if (answer.trace) await insertTrace(aiMessage.id, conversation.id, answer.trace)
 
-  return { conversationId: conversation.id, userMessage, aiMessage }
+  return { conversationId: conversation.id, userMessage, aiMessage, chips: answer.chips ?? [] }
 }
 
 export async function listConversations(userId, { courseId, dayId, limit }) {

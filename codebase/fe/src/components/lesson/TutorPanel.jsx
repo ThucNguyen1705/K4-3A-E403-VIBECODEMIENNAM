@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, Loader2, Paperclip, Plus, Sparkles, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowUp, BookOpen, CornerDownRight, Loader2, Paperclip, Plus, Sparkles, X } from 'lucide-react'
 import { askTutor } from '../../services/api'
 
 const truncate = (s, n) => (s.length > n ? `${s.slice(0, n)}…` : s)
+
+// Nhãn của từng nước đi. Học viên cần biết vì sao trợ giảng không trả lời thẳng.
+const MOVE_BADGE = {
+  cross_lesson_redirect: { text: 'Nằm ở bài khác', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  no_source: { text: 'Không có trong tài liệu', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+  locate_content: { text: 'Vị trí trong khoá', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+  refuse_out_of_bounds: { text: 'Ngoài phạm vi', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+  ask_clarification: { text: 'Cần làm rõ', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+}
 
 // Khung Trợ giảng AI — gửi câu hỏi tới backend, câu hỏi & phản hồi (mock) được log vào database.
 export default function TutorPanel({ lessonTitle, userName, context, onClearContext, onClose, courseId, dayId, partKey }) {
@@ -12,6 +22,7 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
   const [sending, setSending] = useState(false)
   const inputRef = useRef(null)
   const bodyRef = useRef(null)
+  const navigate = useNavigate()
 
   // Focus ô nhập mỗi khi có đoạn bôi đen mới được gửi sang
   useEffect(() => {
@@ -22,8 +33,8 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, sending])
 
-  const send = async () => {
-    const text = input.trim() || (context ? 'Giải thích giúp mình đoạn này' : '')
+  const send = async (override) => {
+    const text = (override ?? input).trim() || (context ? 'Giải thích giúp mình đoạn này' : '')
     if (!text || sending) return
     const sentContext = context || null
     setMessages((m) => [...m, { role: 'user', text, context: sentContext }])
@@ -33,7 +44,16 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
     try {
       const res = await askTutor({ conversationId, question: text, context: sentContext, courseId, dayId, partKey })
       setConversationId(res.conversationId)
-      setMessages((m) => [...m, { role: 'tutor', text: res.aiMessage.content }])
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'tutor',
+          text: res.aiMessage.content,
+          move: res.aiMessage.move,
+          citations: res.aiMessage.citations ?? [],
+          chips: res.chips ?? [],
+        },
+      ])
     } catch (err) {
       setMessages((m) => [...m, { role: 'error', text: `Không gửi được câu hỏi: ${err.message}` }])
     } finally {
@@ -99,15 +119,58 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
                 {m.text}
               </div>
             ) : (
-              <div
-                key={i}
-                className={
-                  m.role === 'error'
-                    ? 'max-w-[95%] self-start rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700'
-                    : 'max-w-[95%] self-start rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm whitespace-pre-line text-slate-700'
-                }
-              >
-                {m.text}
+              <div key={i} className="flex max-w-[95%] flex-col gap-2 self-start">
+                <div
+                  className={
+                    m.role === 'error'
+                      ? 'rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700'
+                      : 'rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm whitespace-pre-line text-slate-700'
+                  }
+                >
+                  {MOVE_BADGE[m.move] && (
+                    <span
+                      className={`mb-2 inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${MOVE_BADGE[m.move].cls}`}
+                    >
+                      {MOVE_BADGE[m.move].text}
+                    </span>
+                  )}
+                  {MOVE_BADGE[m.move] && <br />}
+                  {m.text}
+                </div>
+
+                {/* Trích dẫn: bấm là mở đúng phần trong bài */}
+                {m.citations?.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <p className="px-1 text-[11px] font-medium tracking-wide text-slate-400 uppercase">Nguồn trong tài liệu</p>
+                    {m.citations.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => navigate(c.link)}
+                        title={c.label}
+                        className="flex cursor-pointer items-start gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-xs text-slate-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800"
+                      >
+                        <BookOpen size={13} className="mt-0.5 shrink-0 text-brand-500" />
+                        <span className="line-clamp-2">{c.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Chip gợi ý khi trợ giảng hỏi lại — bấm là hỏi luôn, không phải gõ */}
+                {m.chips?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {m.chips.map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => send(chip)}
+                        disabled={sending}
+                        className="flex cursor-pointer items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs text-brand-800 hover:bg-brand-100 disabled:opacity-50"
+                      >
+                        <CornerDownRight size={12} /> {chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ),
           )
@@ -140,7 +203,7 @@ export default function TutorPanel({ lessonTitle, userName, context, onClearCont
             className="max-h-24 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-slate-400"
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={sending || (!input.trim() && !context)}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
