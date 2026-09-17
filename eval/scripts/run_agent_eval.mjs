@@ -18,8 +18,8 @@ const { generateAnswer } = await import(new URL('codebase/be/src/services/ai.ser
 const GAP = Number(process.env.GAP ?? 0)
 const cases = JSON.parse(readFileSync(GOLDEN, 'utf8'))
 
-// Golden set có hai thế hệ case: bản cũ dùng slide_page, bản mới dùng day_code.
-const dayOf = (c) => c.day_code ?? (c.slide_page && c.slide_page <= 30 ? 'D01' : 'D01')
+// Golden set có hai thế hệ case: bản cũ ghi bài ở trường `lesson`, bản mới dùng `day_code`.
+const dayOf = (c) => c.day_code ?? c.lesson ?? 'D01'
 
 const results = []
 console.log(`Chạy ${cases.length} case qua agent (${process.env.AI_PROVIDER ?? 'gemini'})\n`)
