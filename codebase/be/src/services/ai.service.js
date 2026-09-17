@@ -20,22 +20,28 @@ import {
   toCitation,
 } from './retrieval.service.js'
 
-// AI_PROVIDER=gemini | openai — đổi nhà cung cấp mà không đụng code.
-// Gemini free tier hay dính 429 khi chạy cả bộ golden set; openai là đường lui.
-const PROVIDER = (process.env.AI_PROVIDER ?? 'gemini').toLowerCase()
+// AI_PROVIDER=openai | gemini — đổi nhà cung cấp mà không đụng code.
+const PROVIDER = (process.env.AI_PROVIDER ?? 'openai').toLowerCase()
 const IS_GEMINI = PROVIDER === 'gemini'
 
 const API_KEY = IS_GEMINI
   ? (process.env.GEMINI_API_KEY ?? process.env.GEMINI_API ?? '')
   : (process.env.OPENAI_API_KEY ?? process.env.OPENAI_API ?? '')
 
+// Router chỉ phân loại nước đi → model nhỏ, nhanh. Writer viết câu trả lời → model mạnh.
 const ROUTER_MODEL = IS_GEMINI
   ? (process.env.GEMINI_ROUTER_MODEL ?? 'gemini-3.6-flash')
-  : (process.env.OPENAI_ROUTER_MODEL ?? 'gpt-4o-mini')
+  : (process.env.OPENAI_ROUTER_MODEL ?? 'gpt-5.4-mini')
 
 const WRITER_MODEL = IS_GEMINI
   ? (process.env.GEMINI_MODEL ?? 'gemini-3.6-flash')
-  : (process.env.OPENAI_MODEL ?? 'gpt-4o-mini')
+  : (process.env.OPENAI_MODEL ?? 'gpt-5.5')
+
+// Model có suy luận nội bộ (gpt-5.x, o-series): không nhận temperature tuỳ chỉnh,
+// và token suy luận bị tính chung vào max_completion_tokens.
+const IS_REASONING = (model) => /^(gpt-5|o\d)/.test(model)
+const REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT ?? 'low'
+const REASONING_HEADROOM = 1500
 
 const BASE_URL = IS_GEMINI
   ? (process.env.GEMINI_BASE_URL ?? 'https://generativelanguage.googleapis.com/v1beta')
@@ -92,8 +98,10 @@ const openaiRequest = (model, systemText, userText, json, maxTokens) => ({
       { role: 'system', content: systemText },
       { role: 'user', content: userText },
     ],
-    max_completion_tokens: maxTokens,
-    ...(/^(gpt-5|o\d)/.test(model) ? {} : { temperature: json ? 0 : 0.2 }),
+    ...(IS_REASONING(model)
+      ? // Chừa chỗ cho token suy luận, nếu không câu trả lời có thể bị rỗng
+        { max_completion_tokens: maxTokens + REASONING_HEADROOM, reasoning_effort: REASONING_EFFORT }
+      : { max_completion_tokens: maxTokens, temperature: json ? 0 : 0.2 }),
     ...(json ? { response_format: { type: 'json_object' } } : {}),
   },
   parse: (data) => {
@@ -102,7 +110,7 @@ const openaiRequest = (model, systemText, userText, json, maxTokens) => ({
       promptTokens: u.prompt_tokens ?? 0,
       cachedTokens: u.prompt_tokens_details?.cached_tokens ?? 0,
       outputTokens: u.completion_tokens ?? 0,
-      thoughtTokens: 0,
+      thoughtTokens: u.completion_tokens_details?.reasoning_tokens ?? 0,
     }
     return data.choices?.[0]?.message?.content?.trim() ?? ''
   },

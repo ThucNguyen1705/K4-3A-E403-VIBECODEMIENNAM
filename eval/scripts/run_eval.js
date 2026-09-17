@@ -25,7 +25,8 @@ if (fs.existsSync(envPath)) {
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.argv[2]
 const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '')
-const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+const MODEL_NAME = process.env.OPENAI_MODEL || 'gpt-5.5'
+const REASONING_EFFORT = process.env.OPENAI_REASONING_EFFORT || 'low'
 // Khoảng nghỉ giữa các lượt gọi mới (ms). OpenAI trả phí không cần nghỉ lâu như free tier Gemini.
 const DELAY_MS = Number(process.env.EVAL_DELAY_MS ?? 500)
 
@@ -93,9 +94,11 @@ async function callOpenAI(question, context, lesson, section) {
             { role: 'system', content: SYSTEM_INSTRUCTION },
             { role: 'user', content: currentPrompt },
           ],
-          max_completion_tokens: 300,
-          // Model reasoning (gpt-5, o-series) không nhận temperature tuỳ chỉnh
-          ...(/^(gpt-5|o\d)/.test(MODEL_NAME) ? {} : { temperature: 0.1 }),
+          // Model có suy luận (gpt-5.x, o-series): không nhận temperature tuỳ chỉnh,
+          // token suy luận tính chung vào max_completion_tokens nên phải chừa thêm chỗ
+          ...(/^(gpt-5|o\d)/.test(MODEL_NAME)
+            ? { max_completion_tokens: 1800, reasoning_effort: REASONING_EFFORT }
+            : { max_completion_tokens: 300, temperature: 0.1 }),
         }),
       })
 
