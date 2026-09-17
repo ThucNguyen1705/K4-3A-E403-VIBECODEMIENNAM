@@ -1,1 +1,7 @@
 /slides-text
+tutor_turns.json
+tutor_turns.csv
+D01.json
+D02.json
+*.env
+.env
