@@ -34,13 +34,13 @@ services:
     build: .
     profiles: ["api"]
     environment:
-      PORT: 4000
+      PORT: 8000
       DATABASE_URL: postgres://vlearn:vlearn@db:5432/vlearn
       JWT_SECRET: change-me-to-a-long-random-string
       JWT_EXPIRES_IN: 7d
       CORS_ORIGIN: http://localhost:5173
     ports:
-      - "4000:4000"
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy

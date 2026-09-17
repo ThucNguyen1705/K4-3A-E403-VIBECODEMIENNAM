@@ -4,5 +4,5 @@ COPY package*.json ./
 RUN npm ci --omit=dev || npm install --omit=dev
 COPY src ./src
 COPY db ./db
-EXPOSE 4000
+EXPOSE 8000
 CMD ["node", "src/server.js"]
