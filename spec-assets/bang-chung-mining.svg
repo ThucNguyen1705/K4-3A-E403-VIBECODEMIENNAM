@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 368" width="880" height="368" font-family="'Segoe UI',system-ui,-apple-system,sans-serif" role="img" aria-label="Tutor hiện tại đoán thay vì hỏi lại">
+<rect width="880" height="368" fill="#fcfcfb"/>
+<text x="28" y="34" font-size="17" font-weight="700" fill="#0b0b0b">Tutor hiện tại đoán thay vì hỏi lại</text>
+<text x="28" y="56" font-size="12.5" fill="#52514e">Mining chatlog VLearn, lọc cohort_hint = K4 · n = 3.097 lượt / 448 học viên</text>
+<line x1="354" y1="74" x2="354" y2="304" stroke="#e4e3df" stroke-width="1"/>
+<text x="354" y="322" font-size="10.5" fill="#52514e" text-anchor="middle">0%</text>
+<line x1="462.5" y1="74" x2="462.5" y2="304" stroke="#e4e3df" stroke-width="1"/>
+<text x="462.5" y="322" font-size="10.5" fill="#52514e" text-anchor="middle">10%</text>
+<line x1="571" y1="74" x2="571" y2="304" stroke="#e4e3df" stroke-width="1"/>
+<text x="571" y="322" font-size="10.5" fill="#52514e" text-anchor="middle">20%</text>
+<line x1="679.5" y1="74" x2="679.5" y2="304" stroke="#e4e3df" stroke-width="1"/>
+<text x="679.5" y="322" font-size="10.5" fill="#52514e" text-anchor="middle">30%</text>
+<line x1="788" y1="74" x2="788" y2="304" stroke="#e4e3df" stroke-width="1"/>
+<text x="788" y="322" font-size="10.5" fill="#52514e" text-anchor="middle">40%</text>
+<text x="28" y="99" font-size="13" fill="#0b0b0b">Câu hỏi cụt ≤ 25 ký tự</text>
+<text x="28" y="114" font-size="10.5" fill="#52514e">542 / 3.097 lượt</text>
+<path d="M354,86 H539.875 a4,4 0 0 1 4,4 V97 a4,4 0 0 1 -4,4 H354 Z" fill="#2a78d6"/>
+<text x="551.875" y="99" font-size="12.5" font-weight="700" fill="#0b0b0b">17,5%</text>
+<text x="28" y="137" font-size="13" fill="#0b0b0b">Trong số đó, tutor hỏi lại</text>
+<text x="28" y="152" font-size="10.5" fill="#52514e">53 / 542 — còn lại trả thẳng ~786 ký tự</text>
+<path d="M354,124 H456.33000000000004 a4,4 0 0 1 4,4 V135 a4,4 0 0 1 -4,4 H354 Z" fill="#2a78d6"/>
+<text x="468.33000000000004" y="137" font-size="12.5" font-weight="700" fill="#0b0b0b">9,8%</text>
+<text x="28" y="175" font-size="13" fill="#0b0b0b">Trả lời KHÔNG có trích dẫn</text>
+<text x="28" y="190" font-size="10.5" fill="#52514e">trên các câu học viên tự gõ</text>
+<path d="M354,162 H705.88 a4,4 0 0 1 4,4 V173 a4,4 0 0 1 -4,4 H354 Z" fill="#2a78d6"/>
+<text x="717.88" y="175" font-size="12.5" font-weight="700" fill="#0b0b0b">32,8%</text>
+<text x="28" y="213" font-size="13" fill="#0b0b0b">Thừa nhận “không có trong tài liệu”</text>
+<text x="28" y="228" font-size="10.5" fill="#52514e">khoảng chênh 29 điểm % so với dòng trên</text>
+<path d="M354,200 H387.975 a4,4 0 0 1 4,4 V211 a4,4 0 0 1 -4,4 H354 Z" fill="#9ec5f4"/>
+<text x="399.975" y="213" font-size="12.5" font-weight="700" fill="#0b0b0b">3,5%</text>
+<text x="28" y="251" font-size="13" fill="#0b0b0b">Tutor hỏi ngược (ask_probing_question)</text>
+<text x="28" y="266" font-size="10.5" fill="#52514e">6 / 3.097 lượt</text>
+<rect x="354" y="238" width="2.1700000000000004" height="15" fill="#9ec5f4"/>
+<text x="364.17" y="251" font-size="12.5" font-weight="700" fill="#0b0b0b">0,2%</text>
+<text x="28" y="289" font-size="13" fill="#0b0b0b">Học viên hỏi 1 câu rồi không quay lại</text>
+<text x="28" y="304" font-size="10.5" fill="#52514e">114 / 448 học viên</text>
+<path d="M354,276 H625.5899999999999 a4,4 0 0 1 4,4 V287 a4,4 0 0 1 -4,4 H354 Z" fill="#2a78d6"/>
+<text x="637.5899999999999" y="289" font-size="12.5" font-weight="700" fill="#0b0b0b">25,4%</text>
+<text x="28" y="352" font-size="11" fill="#52514e">Trục 0–40%. Mỗi dòng là tỉ lệ trên cơ sở riêng của nó, ghi ngay dưới nhãn. Script đếm: eval/mining/</text>
+</svg>

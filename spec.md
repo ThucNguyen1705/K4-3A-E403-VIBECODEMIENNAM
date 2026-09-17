@@ -36,6 +36,8 @@ Sơ đồ canvas đính kèm: [`canvas.png`](canvas.png).
 
 ### Evidence
 
+![Biểu đồ bằng chứng mining chatlog](spec-assets/bang-chung-mining.svg)
+
 **Chuẩn B — mining chatlog** (`tutor_turns.csv` trong data pack của BTC, lọc `cohort_hint = K4`, **n = 3.097 lượt / 448 học viên**):
 
 | # | Số đếm được | Ý nghĩa |
@@ -116,6 +118,57 @@ Cả hai là **cùng một quyết định**: *trước khi trả lời, tutor p
 > **Một học viên K4 đang học một bài trên VLearn** · **bôi đen một đoạn rồi gõ câu hỏi** · **tutor chọn một nước đi trước khi trả lời** — trả lời kèm trích dẫn bấm được khi có căn cứ, hỏi lại đúng MỘT câu khi input mơ hồ, chỉ sang đúng bài khi kiến thức nằm ở bài khác, hoặc nói rõ "không có trong tài liệu" kèm chỗ gần nhất · **học viên không bao giờ nhận một câu trả lời không có căn cứ.**
 
 *1 user (học viên K4 đang học) · 1 việc (gỡ chỗ tắc tại chỗ) · 1 quyết định AI (chọn nước đi) · 1 kết quả (câu trả lời có căn cứ hoặc không trả lời).*
+
+### Luồng xử lý một lượt hỏi
+
+```mermaid
+flowchart TD
+    Q["Học viên gõ câu hỏi<br/>+ đoạn bôi đen + bài đang mở"] --> S0
+    S0["<b>S0 · Chuẩn hoá</b><br/>bóc tiền tố ngữ cảnh<br/>rào nội dung người dùng"] --> S1
+    S1["<b>S1 · ROUTER</b> — LLM #1<br/>đọc mục lục 167 chunk<br/>trả move + chunk_ids + confidence"] --> CF{"confidence<br/>≥ 0,6 ?"}
+
+    CF -- "không" --> ASK
+    CF -- "có" --> MV{"nước đi nào?"}
+
+    MV --> ANS["give_direct_answer"]
+    MV --> CROSS["cross_lesson_redirect"]
+    MV --> ASK["ask_clarification"]
+    MV --> LOC["locate_content"]
+    MV --> REF["refuse_out_of_bounds"]
+    MV --> NOSRC["no_source"]
+
+    ANS --> S2
+    CROSS --> S2
+    S2["<b>S2 · Tra chunk</b><br/>lấy nội dung theo mã router chọn"] --> S3
+    S3["<b>S3 · Sinh câu trả lời</b> — LLM #2<br/>chỉ đọc chunk đã tra<br/>bắt buộc trích mã chunk sau mỗi ý"] --> S4
+
+    S4{"<b>S4 · Kiểm trích dẫn</b><br/>mã trích ⊆ mã đã tra ?"}
+    S4 -- "còn mã bịa" --> FIX["Sửa 1 lần<br/>nói thẳng mã nào sai"]
+    FIX --> S4B{"vẫn còn bịa ?"}
+    S4B -- "có" --> NOSRC
+    S4B -- "không" --> OUT
+    S4 -- "sạch" --> OUT
+
+    ASK --> OUT2["Nhãn <b>Cần làm rõ</b><br/>1 câu hỏi + 2–3 chip bấm được"]
+    LOC --> OUT3["Nhãn <b>Vị trí trong khoá</b><br/>danh sách vị trí, không giảng"]
+    REF --> OUT4["Nhãn <b>Ngoài phạm vi</b><br/>chỉ nơi hỏi đúng"]
+    NOSRC --> OUT5["Nhãn <b>Không có trong tài liệu</b><br/>+ chỗ gần nhất. KHÔNG có nội dung trả lời"]
+    OUT["Câu trả lời + <b>chip nguồn bấm được</b><br/>mở đúng phần bài học"]
+
+    OUT --> LOG["Ghi agent_traces:<br/>chunk tra · chunk trích · mã bịa · độ trễ"]
+    OUT2 --> LOG
+    OUT3 --> LOG
+    OUT4 --> LOG
+    OUT5 --> LOG
+
+    style S1 fill:#e8f1fd,stroke:#2a78d6,stroke-width:2px
+    style S3 fill:#e8f1fd,stroke:#2a78d6,stroke-width:2px
+    style S4 fill:#fdecec,stroke:#d03b3b,stroke-width:2px
+    style NOSRC fill:#fdecec,stroke:#d03b3b
+    style OUT5 fill:#fdecec,stroke:#d03b3b
+```
+
+Hai ô viền xanh là hai lời gọi LLM thật. Ô viền đỏ là bộ kiểm trích dẫn bằng code — chỗ chặn câu trả lời không căn cứ lọt ra màn hình.
 
 ### Non-goals — nhóm KHÔNG build
 
@@ -228,6 +281,9 @@ Cách tính cụ thể:
 - Một lượt chạy chỉ **đạt** khi D1 **và** D2 cùng đạt.
 
 ### Kết quả các lượt chạy
+
+![Kết quả lượt 1 theo nhóm case](spec-assets/ket-qua-theo-nhom.svg)
+
 
 | Lượt | Thời điểm | Cấu hình | D1 · Nước đi đúng | D2 · Lớp ① | D3 · Trích dẫn hợp lệ | Mã bịa | Độ trễ p50 / p90 | **Kết luận** |
 |---|---|---|---:|---|---:|---:|---|---|
