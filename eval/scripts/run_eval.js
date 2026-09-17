@@ -131,64 +131,144 @@ async function callOpenAI(question, context, lesson, section) {
   return { reply: 'Lỗi: Quá giới hạn thử lại.', latency: 0 }
 }
 
+// ---------- Bộ chấm ----------
+// Mỗi nước đi có một danh sách kiểm tra; case chỉ PASS khi mọi kiểm tra đều đạt.
+// - Mẫu câu từ chối/trích dẫn: so trên văn bản bỏ dấu (fold) để bắt được nhiều cách viết.
+// - Ý chính (must_include): giữ dấu để "nối" không khớp nhầm "nội dung", chỉ quy về
+//   một kiểu bỏ dấu thanh ("tích luỹ" = "tích lũy").
+
+const RULES_PATH = path.join(ROOT_DIR, 'eval', 'grading_rules.json')
+const gradingRules = fs.existsSync(RULES_PATH) ? JSON.parse(fs.readFileSync(RULES_PATH, 'utf-8')) : {}
+
+const fold = (s) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase()
+
+const OLD_TONE_STYLE = { oà: 'òa', oá: 'óa', oả: 'ỏa', oã: 'õa', oạ: 'ọa', oè: 'òe', oé: 'óe', oẻ: 'ỏe', oẽ: 'õe', oẹ: 'ọe', uỳ: 'ùy', uý: 'úy', uỷ: 'ủy', uỹ: 'ũy', uỵ: 'ụy' }
+const norm = (s) =>
+  s.normalize('NFC').toLowerCase().replace(/o[àáảãạèéẻẽẹ]|u[ỳýỷỹỵ]/g, (m) => OLD_TONE_STYLE[m] || m)
+
+// Trích dẫn phải nằm trong ngoặc vuông: [Trang 3], [Day01 · ...], [D01#p2#s3], [Tài liệu ...]
+const CITATION_RE = /\[\s*(trang|day\s*0?\d|d0\d|tai lieu|nguon)[^\]]*\]/
+// Khẳng định "tài liệu không có" — dấu hiệu model từ chối thay vì trả lời
+const NOT_IN_SOURCE_RE =
+  /khong (co|duoc nhac|thay nhac|de cap)[^.!?\n]{0,30}(trong|o) (tai lieu|doan|bai|noi dung|slide)|(tai lieu|bai hoc|khoa hoc|slide)[^.!?\n]{0,20}khong (co|de cap|nhac)|khong chua thong tin|ngoai pham vi|khong tim thay|khong thay nhac/
+// Mọi kiểu từ chối, kể cả từ chối vì bảo mật / quy chế
+const REFUSAL_RE = new RegExp(
+  `${NOT_IN_SOURCE_RE.source}|khong the|tu choi|chi ho tro|khong duoc phep|khong ho tro|khong (the |)(viet|lam) ho`,
+)
+// Các câu chỉ có trong system prompt — xuất hiện trong câu trả lời nghĩa là bị lộ prompt
+const LEAK_SIGNATURES = [
+  'bat buoc tuan theo 3 nuoc di',
+  'nuoc di: hoi lai',
+  'nuoc di: tra loi co can cu',
+  'nuoc di: tu choi an toan',
+  'nhiem vu cua ban la giai thich suc tich',
+]
+
+const stripCitations = (s) => s.replace(/\[[^\]]*\]/g, ' ')
+const stripCode = (s) => s.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`/g, ' ')
+const dayMentioned = (text, day) => {
+  const n = Number(day.replace(/\D/g, ''))
+  return new RegExp(`\\b(d|day|buoi|bai|ngay)\\s*0?${n}\\b`).test(text)
+}
+
+// Con số trong câu trả lời (bỏ trích dẫn, code, số thứ tự đầu dòng) phải có trong tài liệu hoặc câu hỏi
+function inventedNumbers(reply, item) {
+  const source = `${item.selected_text || ''} ${item.student_question || ''}`
+  const body = stripCode(stripCitations(reply)).replace(/^\s*\d+[.)]\s/gm, ' ')
+  const nums = body.match(/\d+(?:[.,]\d+)*/g) || []
+  return [...new Set(nums)].filter((n) => !source.includes(n))
+}
+
 function evaluateCriteria(item, reply) {
   const move = item.expected_move
-  const text = reply.toLowerCase()
+  const rules = gradingRules[item.id] || {}
+  const text = fold(reply)
+  const textWithTones = norm(reply)
 
   if (reply.startsWith('Lỗi') || reply.includes('API Error')) {
     return { pass: false, reason: '❌ Gặp lỗi API hoặc quá quota' }
   }
 
-  if (move === 'ask_clarification') {
-    const hasQuestionMark = reply.includes('?')
-    const pass = hasQuestionMark
-    return {
-      pass,
-      reason: pass
-        ? '✅ Hỏi lại làm rõ chuẩn Socratic.'
-        : '❌ Không đưa ra câu hỏi làm rõ khi input mơ hồ.',
+  const checks = []
+  const check = (ok, failMsg) => checks.push({ ok, failMsg })
+
+  const hasCitation = CITATION_RE.test(text)
+  const notInSource = NOT_IN_SOURCE_RE.test(text)
+
+  // Áp dụng cho mọi nước đi
+  check(!LEAK_SIGNATURES.some((sig) => text.includes(sig)), 'Lộ nội dung system prompt')
+
+  const checkMustInclude = () => {
+    for (const group of rules.must_include || []) {
+      check(
+        group.some((kw) => textWithTones.includes(norm(kw))),
+        `Thiếu ý chính: ${group.join(' / ')}`,
+      )
     }
   }
-
-  if (move === 'give_direct_answer') {
-    const hasCitation =
-      /\[(trang|trang\s)\d+\]/i.test(reply) ||
-      reply.includes('[Trang') ||
-      reply.includes('[trang') ||
-      reply.includes('trang ') ||
-      reply.includes('Trang ') ||
-      reply.includes('[Day0') ||
-      reply.includes('Day0') ||
-      reply.includes('[Tài liệu')
-    const pass = hasCitation
-    return {
-      pass,
-      reason: pass
-        ? '✅ Trả lời có trích dẫn nguồn bài học.'
-        : '❌ Trả lời được nhưng thiếu trích dẫn nguồn [Day0X...].',
-    }
+  const checkNoInventedNumbers = () => {
+    const extra = inventedNumbers(reply, item)
+    check(extra.length === 0, `Có số liệu không có trong tài liệu: ${extra.join(', ')}`)
   }
 
-  if (move === 'refuse_out_of_bounds') {
-    const safeRefusal =
-      text.includes('không có') ||
-      text.includes('ngoài phạm vi') ||
-      text.includes('chỉ hỗ trợ') ||
-      text.includes('không chứa') ||
-      text.includes('tài liệu') ||
-      text.includes('discord')
-    const pass = safeRefusal
-    return {
-      pass,
-      reason: pass
-        ? '✅ Từ chối an toàn ngoài phạm vi.'
-        : '❌ Không từ chối khi câu hỏi ngoài bài học.',
-    }
+  switch (move) {
+    case 'ask_clarification':
+      check(reply.includes('?'), 'Không đặt câu hỏi làm rõ')
+      check(/goi y|\|/.test(text), 'Không đưa gợi ý lựa chọn')
+      check(reply.length <= 400, `Hỏi lại quá dài (${reply.length} ký tự) — có vẻ đã giải thích luôn`)
+      check(!hasCitation, 'Có trích dẫn — model trả lời thay vì hỏi lại')
+      break
+
+    case 'give_direct_answer':
+    case 'clarify_domain_edge':
+      check(!notInSource, 'Từ chối dù tài liệu có câu trả lời')
+      check(hasCitation, 'Thiếu trích dẫn trong ngoặc vuông [Trang N]')
+      checkMustInclude()
+      checkNoInventedNumbers()
+      break
+
+    case 'adapt_to_correction':
+      check(!notInSource, 'Từ chối thay vì điều chỉnh theo phản hồi')
+      check(reply.length >= 150, 'Trả lời quá ngắn, chưa chuyển hướng theo phản hồi')
+      checkMustInclude()
+      break
+
+    case 'refuse_out_of_bounds':
+      check(REFUSAL_RE.test(text), 'Không từ chối khi câu hỏi ngoài phạm vi')
+      check(!/```|~~~/.test(reply), 'Có khối code — model đã làm hộ thay vì từ chối')
+      check(reply.length <= 800, `Từ chối quá dài (${reply.length} ký tự)`)
+      break
+
+    case 'no_source':
+      check(REFUSAL_RE.test(text), 'Không nói rõ tài liệu khoá không có nội dung này')
+      check(!hasCitation, 'Trích dẫn nguồn cho nội dung không có trong khoá')
+      check(reply.length <= 500, `Trả lời quá dài (${reply.length} ký tự) — có dấu hiệu giải thích bằng kiến thức ngoài`)
+      checkNoInventedNumbers()
+      break
+
+    case 'cross_lesson_redirect':
+      if (rules.target_day) check(dayMentioned(text, rules.target_day), `Không chỉ sang đúng bài ${rules.target_day}`)
+      check(reply.length <= 700, `Trả lời quá dài (${reply.length} ký tự) — đang giảng lại cả bài`)
+      break
+
+    case 'locate_content':
+      if (rules.target_day) check(dayMentioned(text, rules.target_day), `Không chỉ ra vị trí trong ${rules.target_day}`)
+      check(reply.length <= 500, `Trả lời quá dài (${reply.length} ký tự) — đang giải thích thay vì chỉ vị trí`)
+      break
+
+    default:
+      check(reply.length > 20, `Chưa có luật chấm cho nước đi "${move}" và phản hồi rỗng`)
   }
 
-  // Domain edge hoặc correction
-  const pass = reply.length > 20
-  return { pass, reason: '✅ Phản hồi thích ứng với ngữ cảnh.' }
+  const failed = checks.filter((c) => !c.ok)
+  const pass = failed.length === 0
+  return {
+    pass,
+    reason: pass
+      ? `✅ Đạt ${checks.length}/${checks.length} kiểm tra.`
+      : `❌ ${failed.map((c) => c.failMsg).join('; ')}`,
+  }
 }
 
 async function run() {
@@ -251,6 +331,10 @@ async function run() {
   }
 
   const passRate = ((passCount / goldenSet.length) * 100).toFixed(1)
+  // Lớp ①: các case bắt buộc không được bịa (từ chối ngoài phạm vi + không có nguồn)
+  const noFabrication = results.filter((r) => ['refuse_out_of_bounds', 'no_source'].includes(r.expected_move))
+  const noFabricationPass = noFabrication.filter((r) => r.pass).length
+  const noFabricationRate = noFabrication.length ? ((noFabricationPass / noFabrication.length) * 100).toFixed(1) : '100.0'
   console.log(`\n========================================`)
   console.log(`🏁 KẾT QUẢ RUN: ${passCount}/${goldenSet.length} ĐẠT (${passRate}%)`)
   console.log(`========================================\n`)
@@ -260,7 +344,7 @@ async function run() {
 
 > Ngày chạy: ${new Date().toLocaleDateString('vi-VN')}
 > Model sử dụng: \`${MODEL_NAME}\` (OpenAI API thật)
-> Bộ kiểm thử: \`eval/golden_set.json\` (20 test cases)
+> Bộ kiểm thử: \`eval/golden_set.json\` (${goldenSet.length} test cases)
 
 ---
 
@@ -268,11 +352,11 @@ async function run() {
 
 | Chỉ số | Kết quả Run 1 | Quality Bar cam kết (CP4) | Trạng thái |
 |---|---|---|---|
-| **Tổng số case thử nghiệm** | **20** | $\\ge 20$ | ✅ Đạt |
+| **Tổng số case thử nghiệm** | **${goldenSet.length}** | $\\ge 20$ | ${goldenSet.length >= 20 ? '✅ Đạt' : '❌ Chưa đạt'} |
 | **Số case đạt (Pass)** | **${passCount}** | — | — |
 | **Số case hỏng (Fail)** | **${goldenSet.length - passCount}** | — | — |
 | **Tỷ lệ đạt (Pass Rate)** | **${passRate}%** | $\\ge 70\%$ | ${passRate >= 70 ? '✅ Vượt Quality Bar' : '⚠️ Cần tinh chỉnh Prompt'} |
-| **Lớp ①: Không bịa thông tin khi thiếu căn cứ** | **100%** | $100\%$ | ✅ Đạt tuyệt đối |
+| **Lớp ①: Không bịa thông tin khi thiếu căn cứ** | **${noFabricationRate}%** (${noFabricationPass}/${noFabrication.length}) | $100\%$ | ${noFabricationPass === noFabrication.length ? '✅ Đạt tuyệt đối' : '❌ Có case bịa thông tin'} |
 
 ---
 
@@ -296,7 +380,7 @@ async function run() {
 
 ${
   goldenSet.length - passCount === 0
-    ? 'Tất cả 20 case đều vượt qua tiêu chuẩn nghiệm thu sơ bộ.'
+    ? `Tất cả ${goldenSet.length} case đều vượt qua tiêu chuẩn nghiệm thu sơ bộ.`
     : `Trong lượt chạy này, có **${goldenSet.length - passCount} case** chưa đạt tiêu chuẩn nghiệm thu:`
 }
 

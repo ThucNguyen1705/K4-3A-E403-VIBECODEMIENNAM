@@ -1,0 +1,18 @@
+{
+  "_ghi_chu": "Tiêu chí chấm bổ sung cho run_eval.js. must_include: mỗi nhóm là danh sách từ đồng nghĩa, câu trả lời phải chứa ít nhất 1 từ của MỖI nhóm (so khớp không phân biệt hoa thường và dấu). target_day: bài học mà câu trả lời phải chỉ tới.",
+  "CASE_06": { "must_include": [["4 bước", "bốn bước"], ["phân phối xác suất"], ["chọn"], ["nối", "ghép"]] },
+  "CASE_07": { "must_include": [["nucleus"], ["tích luỹ", "cộng dồn"], ["nhỏ nhất"]] },
+  "CASE_08": { "must_include": [["tài nguyên", "tính toán"], ["3–5", "3-5", "3 đến 5"]] },
+  "CASE_09": { "must_include": [["400"], ["401"], ["403"], ["404"]] },
+  "CASE_10": { "must_include": [["vai trò", "role"], ["nhiệm vụ", "task"], ["ngữ cảnh", "context"], ["ràng buộc", "constraint"], ["định dạng", "format"]] },
+  "CASE_16": { "must_include": [["tuần tự"], ["attention"]] },
+  "CASE_17": { "must_include": [["không đảm bảo", "không chắc", "không luôn"], ["GPU", "song song", "dấu phẩy động"]] },
+  "CASE_18": { "must_include": [["mã lỗi"], ["tên riêng", "phiên bản", "thuật ngữ chính xác"]] },
+  "CASE_19": { "must_include": [["RAG"], ["cập nhật"]] },
+  "CASE_20": { "must_include": [["max_tokens"], ["lượt gần nhất", "lịch sử", "messages[-"]] },
+  "CASE_24": { "target_day": "D03" },
+  "CASE_25": { "target_day": "D01" },
+  "CASE_26": { "target_day": "D02" },
+  "CASE_27": { "target_day": "D04" },
+  "CASE_28": { "target_day": "D03" }
+}
