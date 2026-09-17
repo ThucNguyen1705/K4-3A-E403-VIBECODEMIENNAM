@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Bell, BookOpen, FlaskConical, Home, Moon, Dumbbell } from 'lucide-react'
+import { Bell, BookOpen, FlaskConical, Home, Moon, Dumbbell, MessagesSquare } from 'lucide-react'
 import clsx from 'clsx'
 import Logo from './Logo'
 import UserMenu from './UserMenu'
@@ -7,6 +7,7 @@ import UserMenu from './UserMenu'
 const navItems = [
   { to: '/dashboard', label: 'Trang chủ', icon: Home },
   { to: '#courses', label: 'Khóa học', icon: BookOpen },
+  { to: '/history', label: 'Lịch sử hỏi đáp', icon: MessagesSquare },
   { to: '#practice', label: 'Luyện tập', icon: Dumbbell, badge: 'Sắp ra mắt' },
   { to: '#lab', label: 'Lab', icon: FlaskConical, badge: 'Mới', badgeRed: true },
 ]

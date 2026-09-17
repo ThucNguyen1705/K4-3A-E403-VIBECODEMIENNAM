@@ -21,7 +21,13 @@ const askSchema = z.object({
 const listSchema = z.object({
   courseId: z.string().optional(),
   dayId: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  q: z.string().trim().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+})
+
+const statsSchema = z.object({
+  courseId: z.string().optional(),
+  dayId: z.string().optional(),
 })
 
 const idSchema = z.object({ id: z.string().uuid('id không hợp lệ') })
@@ -36,7 +42,12 @@ router.get('/conversations', validate(listSchema, 'query'), async (req, res) => 
   res.json({ conversations: await chatService.listConversations(req.userId, req.valid.query) })
 })
 
-// Toàn bộ log tin nhắn của một cuộc hội thoại
+// Số liệu tổng hợp: số hội thoại, số câu hỏi, độ trễ trung bình, phân bố nước đi
+router.get('/stats', validate(statsSchema, 'query'), async (req, res) => {
+  res.json(await chatService.getStats(req.userId, req.valid.query))
+})
+
+// Toàn bộ log tin nhắn của một cuộc hội thoại (kèm trace quyết định của trợ giảng)
 router.get('/conversations/:id/messages', validate(idSchema, 'params'), async (req, res) => {
   res.json(await chatService.getConversationMessages(req.userId, req.valid.params.id))
 })

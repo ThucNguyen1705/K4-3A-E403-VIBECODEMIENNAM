@@ -41,12 +41,19 @@ export const getMe = () => request('/auth/me')
 export const askTutor = ({ conversationId, question, context, courseId, dayId, partKey }) =>
   request('/chat/ask', { method: 'POST', body: { conversationId, question, context, courseId, dayId, partKey } })
 
-export const getConversations = ({ courseId, dayId } = {}) => {
-  const qs = new URLSearchParams(Object.entries({ courseId, dayId }).filter(([, v]) => v)).toString()
-  return request(`/chat/conversations${qs ? `?${qs}` : ''}`)
+const queryString = (params) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
+  return qs ? `?${qs}` : ''
 }
 
+export const getConversations = ({ courseId, dayId, q, limit } = {}) =>
+  request(`/chat/conversations${queryString({ courseId, dayId, q, limit })}`).then((d) => d.conversations)
+
 export const getConversationMessages = (id) => request(`/chat/conversations/${id}/messages`)
+
+export const deleteConversation = (id) => request(`/chat/conversations/${id}`, { method: 'DELETE' })
+
+export const getChatStats = ({ courseId, dayId } = {}) => request(`/chat/stats${queryString({ courseId, dayId })}`)
 
 // ---------- Khoá học & ngày học ----------
 export const getMyCourses = () => request('/courses').then((d) => d.courses)

@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import LessonPage from './pages/LessonPage'
+import HistoryPage from './pages/HistoryPage'
 
 function RequireAuth({ children }) {
   const { user } = useAuth()
@@ -30,6 +31,14 @@ export default function App() {
         element={
           <RequireAuth>
             <LessonPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <RequireAuth>
+            <HistoryPage />
           </RequireAuth>
         }
       />

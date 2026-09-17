@@ -14,6 +14,19 @@ const toMessage = (r) => ({
   citations: r.citations ?? [],
   latencyMs: r.latency_ms,
   createdAt: r.created_at,
+  ...(r.trace && { trace: toTrace(r.trace) }),
+})
+
+const toTrace = (t) => ({
+  move: t.move,
+  moveBefore: t.move_before,
+  confidence: t.confidence,
+  dayCode: t.day_code,
+  retrievedIds: t.retrieved_ids ?? [],
+  citedIds: t.cited_ids ?? [],
+  invalidIds: t.invalid_ids ?? [],
+  crossLesson: t.cross_lesson,
+  latencyMs: t.latency_ms ?? {},
 })
 
 const toConversation = (r) => ({
@@ -23,6 +36,9 @@ const toConversation = (r) => ({
   partKey: r.part_key,
   title: r.title,
   messageCount: r.message_count !== undefined ? Number(r.message_count) : undefined,
+  lastAnswer: r.last_answer ?? undefined,
+  lastMove: r.last_move ?? undefined,
+  lastMessageAt: r.last_message_at ?? undefined,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 })
@@ -121,26 +137,89 @@ export async function ask(userId, { conversationId, question, context, courseId,
   return { conversationId: conversation.id, userMessage, aiMessage, chips: answer.chips ?? [] }
 }
 
-export async function listConversations(userId, { courseId, dayId, limit }) {
+// Escape ký tự đặc biệt của LIKE để tìm kiếm theo đúng chuỗi người dùng gõ
+const likePattern = (q) => (q ? `%${q.replace(/[\\%_]/g, '\\$&')}%` : null)
+
+export async function listConversations(userId, { courseId, dayId, q, limit }) {
   const { rows } = await query(
-    `SELECT c.*, COUNT(m.id) AS message_count
+    `SELECT c.*,
+            COUNT(m.id)        AS message_count,
+            MAX(m.created_at)  AS last_message_at,
+            last.content       AS last_answer,
+            last.move          AS last_move
        FROM conversations c
        LEFT JOIN messages m ON m.conversation_id = c.id
+       LEFT JOIN LATERAL (
+         SELECT content, move FROM messages
+          WHERE conversation_id = c.id AND role = 'assistant'
+          ORDER BY id DESC LIMIT 1
+       ) last ON true
       WHERE c.user_id = $1
         AND ($2::text IS NULL OR c.course_id = $2)
         AND ($3::text IS NULL OR c.day_id = $3)
-      GROUP BY c.id
+        AND ($4::text IS NULL
+             OR c.title ILIKE $4
+             OR EXISTS (SELECT 1 FROM messages s WHERE s.conversation_id = c.id AND s.content ILIKE $4))
+      GROUP BY c.id, last.content, last.move
       ORDER BY c.updated_at DESC
-      LIMIT $4`,
-    [userId, courseId ?? null, dayId ?? null, limit],
+      LIMIT $5`,
+    [userId, courseId ?? null, dayId ?? null, likePattern(q), limit],
   )
   return rows.map(toConversation)
 }
 
 export async function getConversationMessages(userId, conversationId) {
   const conv = await getOwnedConversation(userId, conversationId)
-  const { rows } = await query(`SELECT * FROM messages WHERE conversation_id = $1 ORDER BY id`, [conversationId])
+  const { rows } = await query(
+    `SELECT m.*, to_jsonb(t) AS trace
+       FROM messages m
+       LEFT JOIN LATERAL (
+         SELECT * FROM agent_traces WHERE message_id = m.id ORDER BY id DESC LIMIT 1
+       ) t ON true
+      WHERE m.conversation_id = $1
+      ORDER BY m.id`,
+    [conversationId],
+  )
   return { conversation: toConversation(conv), messages: rows.map(toMessage) }
+}
+
+// Số liệu tổng hợp lịch sử hỏi đáp của user (lọc được theo khoá / ngày)
+export async function getStats(userId, { courseId, dayId }) {
+  const params = [userId, courseId ?? null, dayId ?? null]
+  const scope = `c.user_id = $1
+    AND ($2::text IS NULL OR c.course_id = $2)
+    AND ($3::text IS NULL OR c.day_id = $3)`
+
+  const [{ rows: totals }, { rows: moves }] = await Promise.all([
+    query(
+      `SELECT COUNT(DISTINCT c.id)                                   AS conversations,
+              COUNT(m.id) FILTER (WHERE m.role = 'user')             AS questions,
+              COUNT(m.id) FILTER (WHERE m.role = 'assistant')        AS answers,
+              ROUND(AVG(m.latency_ms) FILTER (WHERE m.role = 'assistant')) AS avg_latency_ms
+         FROM conversations c
+         LEFT JOIN messages m ON m.conversation_id = c.id
+        WHERE ${scope}`,
+      params,
+    ),
+    query(
+      `SELECT COALESCE(m.move, 'unknown') AS move, COUNT(*) AS count
+         FROM messages m
+         JOIN conversations c ON c.id = m.conversation_id
+        WHERE ${scope} AND m.role = 'assistant'
+        GROUP BY 1
+        ORDER BY 2 DESC`,
+      params,
+    ),
+  ])
+
+  const t = totals[0]
+  return {
+    conversations: Number(t.conversations),
+    questions: Number(t.questions),
+    answers: Number(t.answers),
+    avgLatencyMs: t.avg_latency_ms === null ? null : Number(t.avg_latency_ms),
+    moves: moves.map((r) => ({ move: r.move, count: Number(r.count) })),
+  }
 }
 
 export async function deleteConversation(userId, conversationId) {

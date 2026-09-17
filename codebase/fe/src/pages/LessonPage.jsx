@@ -24,7 +24,9 @@ function LessonView({ courseId, dayId }) {
   const [lesson, setLesson] = useState(null)
   const [error, setError] = useState('')
   const [showSidebar, setShowSidebar] = useState(true)
-  const [showTutor, setShowTutor] = useState(false)
+  // ?conversation=<id> khi bấm "Tiếp tục hỏi trong bài" từ trang Lịch sử hỏi đáp
+  const [initialConversationId] = useState(() => searchParams.get('conversation'))
+  const [showTutor, setShowTutor] = useState(Boolean(initialConversationId))
   const [askContext, setAskContext] = useState('')
   const contentRef = useRef(null)
   const { done, toggle } = useProgress(courseId, dayId)
@@ -202,6 +204,7 @@ function LessonView({ courseId, dayId }) {
             courseId={courseId}
             dayId={dayId}
             partKey={current?.id}
+            initialConversationId={initialConversationId}
             context={askContext}
             onClearContext={() => setAskContext('')}
             onClose={() => setShowTutor(false)}
