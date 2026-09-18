@@ -17,7 +17,8 @@ for(const [d,q,want] of cases){
   const ok=r.move===want; if(ok)pass++
   if(r.trace?.invalidIds?.length) bia++
   const u=r.trace?.usage?.router??{}
-  console.log(`${ok?'PASS':'FAIL'} [${d}] ${q.padEnd(32)} → ${r.move.padEnd(22)} ${String(r.latencyMs).padStart(6)}ms cache=${u.cachedTokens??0}/${u.promptTokens??0}`)
+  const w=r.trace?.usage?.writer??{}
+  console.log(`${ok?"PASS":"FAIL"} [${d}] ${q.padEnd(32)} → ${r.move.padEnd(22)} ${String(r.latencyMs).padStart(6)}ms router=${u.cachedTokens??0}/${u.promptTokens??0} writer=${w.promptTokens??"-"}`)
   if(!ok) console.log(`       mong ${want} · lydo: ${r.trace?.reason}`)
   if(r.trace?.citedIds?.length) console.log(`       trich: ${r.trace.citedIds.join(' ')}`)
  }catch(e){ console.log(`ERR  [${d}] ${q} → ${e.message.slice(0,90)}`) }

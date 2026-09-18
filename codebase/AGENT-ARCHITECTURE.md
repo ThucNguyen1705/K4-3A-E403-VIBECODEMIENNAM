@@ -56,7 +56,24 @@ Ba luật, thi hành bằng code chứ không bằng lời dặn trong prompt:
 
 ---
 
-## 4 · Ý tưởng cốt lõi: mục lục vừa đủ nhỏ để nhét vào prompt
+## 4 · Router đọc ứng viên do RAG truy xuất, không đọc cả mục lục
+
+> **Đã thay đổi.** Bản đầu nhét cả mục lục 167 tiêu đề (~2,3k token) vào mọi lời gọi router.
+> Giờ router chỉ nhận **10 tiêu đề ứng viên** do tầng truy xuất lai lấy ra
+> (`retrieval.service.js`), cộng tổng quan khoá ở mức **phần** (28 dòng, tĩnh, được prompt cache).
+> Writer không đổi — vẫn chỉ đọc đúng các chunk router chọn.
+>
+> - **Truy xuất lai:** BM25 (trọng số 0,7) + vector `text-embedding-3-large` 1024 chiều, trộn RRF.
+>   Vector nằm trong `eval/index/lesson_embeddings.json`, nạp vào RAM, duyệt hết 167 vector
+>   dưới 1 ms — **không cần vector database** ở cỡ này.
+> - **Câu hỏi và đoạn bôi đen truy xuất riêng rồi xen kẽ.** Gộp chung thì đoạn bôi đen (luôn thuộc
+>   bài đang mở) lấn át câu hỏi ngắn và giết mất câu chéo bài.
+> - **Mất tầng vector** (thiếu key, API lỗi) thì tự nới gấp đôi số ứng viên, BM25 vẫn đủ recall.
+> - **Đo được:** `npm run rag:recall` — recall@10 trên 37 câu gán nhãn tay phải là 100%,
+>   vì chunk đáp án rơi khỏi danh sách ứng viên là router chắc chắn sai.
+> - Dựng lại chỉ mục sau khi sửa bài: `npm run rag:index` (chỉ nhúng lại chunk có nội dung đổi).
+>
+> Phần dưới giữ lại lập luận gốc của bản mục lục.
 
 167 tiêu đề, mỗi tiêu đề chừng 60 ký tự, tổng khoảng **10 KB — chừng 3–4 nghìn token**.
 

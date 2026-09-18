@@ -10,6 +10,8 @@
     "migrate": "node --env-file-if-exists=.env src/scripts/migrate.js",
     "seed": "node --env-file-if-exists=.env src/scripts/seed.js",
     "setup": "npm run migrate && npm run seed",
+    "rag:index": "node src/scripts/build-index.js && node --env-file-if-exists=.env src/scripts/build-embeddings.js",
+    "rag:recall": "node --env-file-if-exists=.env src/scripts/rag-recall.mjs",
     "db:up": "docker compose up -d db adminer",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d db adminer"
