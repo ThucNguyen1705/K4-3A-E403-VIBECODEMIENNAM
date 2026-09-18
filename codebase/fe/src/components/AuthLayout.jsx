@@ -37,10 +37,7 @@ export default function AuthLayout({ title, subtitle, children }) {
         <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-brand-500/30 blur-3xl" />
         <div className="absolute right-0 bottom-0 h-[28rem] w-[28rem] rounded-full bg-sky-400/20 blur-3xl" />
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
-          <div className="flex items-center gap-2 text-2xl font-extrabold">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-brand-700">V</div>
-            VLearn
-          </div>
+          <Logo size="lg" onLight={false} />
           <div className="max-w-md">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium ring-1 ring-white/20">
               <Sparkles size={14} /> Học cùng Trợ giảng AI

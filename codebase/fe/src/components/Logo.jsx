@@ -1,14 +1,17 @@
-export default function Logo({ size = 'md' }) {
-  const box = size === 'lg' ? 'h-11 w-11 text-2xl' : 'h-9 w-9 text-xl'
-  const text = size === 'lg' ? 'text-3xl' : 'text-2xl'
+// Logo chính thức của VLearn (bản lockup màu, tải từ vlearn.dev/brand)
+// File nằm ở fe/public nên tham chiếu bằng đường dẫn tuyệt đối.
+const LOGO_SRC = '/vlearn-lockup-color.svg'
+
+// Bản lockup màu dùng cho nền sáng. Trên nền tối, đặt onLight để logo nằm trong thẻ nền trắng.
+export default function Logo({ size = 'md', onLight = true, className = '' }) {
+  const height = size === 'lg' ? 'h-11' : 'h-9'
+
+  const img = <img src={LOGO_SRC} alt="VLearn" className={`${height} w-auto select-none`} />
+
+  if (onLight) return <div className={`flex items-center ${className}`}>{img}</div>
+
+  // Nền tối: logo navy/đỏ sẽ chìm, nên lót nền trắng
   return (
-    <div className="flex items-center gap-2 select-none">
-      <div
-        className={`${box} grid place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-800 font-extrabold text-white shadow-md shadow-brand-500/30`}
-      >
-        V
-      </div>
-      <span className={`${text} font-extrabold tracking-tight text-brand-700`}>VLearn</span>
-    </div>
+    <div className={`inline-flex items-center rounded-xl bg-white px-3 py-2 shadow-sm ${className}`}>{img}</div>
   )
 }
