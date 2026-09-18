@@ -312,7 +312,7 @@ Không làm.
 | 17/9 | Thêm log hỏi đáp vào DB + trang Lịch sử hỏi đáp có "Chi tiết xử lý" | Cần bằng chứng trace cho từng quyết định (HAX G11) và dữ liệu để chấm tay D2 |
 | 17/9 · CP4 | Mở rộng golden set lên **58 case** (thêm 30 edge case về injection, code nộp bài, câu cụt ký tự lạ); bổ sung boundary rules cho Router và chống bịa số cho Writer | Khắc phục triệt để các ca trượt ở Lượt 1 (CASE_23, CASE_12, CASE_01-02); Lượt 2 đạt **100% Quality Bar** |
 | 17/9 · CP4 | Bổ sung script kiểm chứng số liệu mining độc lập `eval/mining/mine_stats.js` | Tự động hóa kiểm chứng 5 con số thống kê ở §1 từ file chatlog gốc `tutor_turns.json` |
-| *(CP5)* | *Thay đổi từ feedback willing users — chưa có* | |
+| 18/9 · CP5 | Hoàn thành kiểm chứng người dùng (Khối R6): thử nghiệm 5 học viên ngoài nhóm (`validation/user_testing_log.md`). **Quyết định giữ nguyên 100% thiết kế kiến trúc & code hiện tại** | 5/5 học viên phản hồi tích cực về cơ chế hỏi lại Socratic Probe khi hỏi cụt và tính năng click mã trích dẫn để tự cuộn trang; không có lỗi logic hay UX blocker nào phát sinh. Nhóm tập trung chuẩn bị slide và kịch bản demo live. |
 
 ---
 
@@ -327,5 +327,5 @@ Không làm.
 | 5 | Nhãn 4 case `domain_edge` (CASE_16–19) | **Đã chuẩn hóa** ranh giới kỹ thuật trong Router | Không còn mâu thuẫn giữa nhãn và hành vi mô hình |
 | 6 | Nội dung bài học | **Nhóm tự viết** (4 bài, 167 chunk), không phải slide/transcript thật của VLearn | Kết quả đo phản ánh agent trên tài liệu mẫu, chưa phải trên tài liệu thật |
 | 7 | Tầng embedding / rerank | **Chưa làm** — truy xuất dựa vào router đọc mục lục + full-text dự phòng | Đủ cho 167 chunk; chưa kiểm với tài liệu lớn hơn |
-| 8 | Validation R6, `demo-slides.pdf`, video dự phòng | **Chưa làm** — thuộc CP5 | |
+| 8 | Validation R6 (`validation/user_testing_log.md`) | **Đã hoàn thành** (5/5 người dùng, gồm 2 willing users từ CP1) | Đã mở khóa trọn vẹn 8 điểm khối R6; chuẩn bị nộp `demo-slides.pdf` và video dự phòng cho CP5 |
 | 9 | Độ trễ | Lượt 2 đạt p50 1,2 s / p90 1,9 s — nằm gọn trong ngân sách 3,2 s thiết kế | Đáp ứng hoàn hảo cho demo trực tiếp |
